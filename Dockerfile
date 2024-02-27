@@ -19,20 +19,19 @@ RUN unzip /build/social-media-server/build/distributions/social-media-server-1.0
 FROM alpine:3.19.1
 COPY --from=build /build/social-media-server/social-media-server-1.0-SNAPSHOT /app/social-media-server
 COPY TWRSS /app/twrss
+COPY container-entrypoint.sh /app/container-entrypoint.sh
 
 RUN apk add --no-cache \
+    bash \
     python3 \
     py3-pip \
     openjdk21-jre-headless
 
 WORKDIR /app/twrss
 RUN python3 -m venv /opt/venv
-RUN . /opt/venv/bin/activate && pip install --no-cache-dir -r /app/twrss/requirements.txt
+RUN . /opt/venv/bin/activate && pip3 install --no-cache-dir -r /app/twrss/requirements.txt
 
 EXPOSE 8000
 
-# Set the entry point for the container
-ENTRYPOINT ["/app/social-media-server/bin/social-media-server"]
-
-# Pass parameters to the Gradle project
+ENTRYPOINT ["/app/container-entrypoint.sh"]
 CMD ["/app/twrss/run.sh", "/data", "8000"]

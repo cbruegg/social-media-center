@@ -49,7 +49,7 @@ suspend fun main(args: Array<String>) = coroutineScope {
 
 private suspend fun createFeedMonitor(twitterScriptLocation: String, dataLocation: String): FeedMonitor {
     val sources = withContext(Dispatchers.IO) {
-        Json.decodeFromString<Sources>(Path(dataLocation).readText())
+        Json.decodeFromString<Sources>(Path(dataLocation, "sources.json").readText())
     }
 
     val platforms = listOf(
