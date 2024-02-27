@@ -1,6 +1,7 @@
 package com.cbruegg.socialmediaserver.retrieval
 
 import com.cbruegg.socialmediaserver.rss.Rss
+import com.cbruegg.socialmediaserver.rss.mastodonAuthor
 import com.cbruegg.socialmediaserver.rss.rssContentType
 import com.cbruegg.socialmediaserver.rss.toFeedItem
 import io.ktor.client.*
@@ -71,9 +72,37 @@ class Mastodon(val followingsOf: List<MastodonUser>) : AuthenticatedSocialPlatfo
                 .mapNotNull { it.getOrNull() }
         }
 
+        val accountInfoByMastodonAuthor: Map<String, AccountLookupResponse> = coroutineScope {
+            rssFeeds.asSequence()
+                .flatMap { rssFeed -> rssFeed.channel.item }
+                .mapNotNull { post -> post.mastodonAuthor }
+                .distinct()
+                .map { author ->
+                    async {
+                        runCatching {
+                            // We could also ask the server of the user we're querying to distribute the load
+                            val account = http.get("${user.server}/api/v1/accounts/lookup?acct=$author")
+                                .body<AccountLookupResponse>()
+                            author to account
+                        }
+                    }
+                }
+                .toList()
+                .awaitAll()
+                .mapNotNull { it.getOrNull() }
+                .toMap()
+        }
+
         return rssFeeds.asSequence()
             .flatMap { rssFeed -> rssFeed.channel.item }
-            .map { it.toFeedItem() }
+            .map { rssItem ->
+                val mastodonAuthor = rssItem.mastodonAuthor
+                val accountInfo = mastodonAuthor?.let { accountInfoByMastodonAuthor[it] }
+                rssItem.toFeedItem(
+                    author = accountInfo?.acct?.let { "@$it" },
+                    authorImageUrl = accountInfo?.avatar
+                )
+            }
             .toList()
     }
 
@@ -99,3 +128,13 @@ private suspend inline fun <reified T> HttpClient.paginate(firstUrl: String, get
 @Serializable
 private data class FollowingsResponse(val next: String? = null, val orderedItems: List<String>)
 
+// Incomplete response, there's more data available
+@Serializable
+private data class AccountLookupResponse(
+    val id: String,
+    val username: String,
+    val acct: String,
+    val display_name: String,
+    val avatar: String,
+    val avatar_static: String
+)

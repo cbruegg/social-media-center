@@ -13,6 +13,7 @@ enum class PlatformId { Twitter, Mastodon, BlueSky }
 data class FeedItem(
     val text: String,
     val author: String,
+    val authorImageUrl: String?,
     val id: String,
     val published: Instant,
     val link: String,

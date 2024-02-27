@@ -57,10 +57,12 @@ def main(list_id: str, data_path: str) -> None:
 
 def tweet_to_feed_item(tweet: twikit.Tweet):
     name = tweet.user.name
-    link = f"https://twitter.com/{name}/status/{tweet.id}"
+    screen_name = tweet.user.screen_name
+    link = f"https://twitter.com/{screen_name}/status/{tweet.id}"
     return {
         'text': tweet.text,
-        'author': name,
+        'author': f"@{screen_name}",
+        'authorImageUrl': tweet.user.profile_image_url,
         'id': tweet.id,
         'published': parser.parse(tweet.created_at),
         'link': link,
