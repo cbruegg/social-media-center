@@ -19,5 +19,5 @@ jobs:
       run: |
         tag=$(date +%s)
         echo ${{secrets.GITHUB_TOKEN}} | docker login ghcr.io -u cbruegg --password-stdin
-        docker build . --file Dockerfile --tag social-media-center:$tag
+        docker build . --file Dockerfile --tag ghcr.io/cbruegg/social-media-center:$tag
         docker push ghcr.io/cbruegg/social-media-center:$tag
