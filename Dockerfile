@@ -16,19 +16,18 @@ RUN ./gradlew assemble
 RUN unzip /build/social-media-server/build/distributions/social-media-server-1.0-SNAPSHOT.zip
 
 
-FROM ubuntu:23.10
+FROM alpine:3.19.1
 COPY --from=build /build/social-media-server/build/distributions/social-media-server-1.0-SNAPSHOT /app/social-media-server
 COPY TWRSS /app/twrss
 
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    openjdk-21-jre-headless \
-    python3 python3-venv; \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache \
+    python3 \
+    py3-pip \
+    openjdk21-jre-headless
 
 WORKDIR /app/twrss
-RUN python3 -m venv /app/twrss/.venv && . /app/twrss/.venv/bin/activate && pip install --no-cache-dir -r /app/twrss/requirements.txt
+RUN python3 -m venv /opt/venv
+RUN . /opt/venv/bin/activate && pip install --no-cache-dir -r /app/twrss/requirements.txt
 
 EXPOSE 8000
 
