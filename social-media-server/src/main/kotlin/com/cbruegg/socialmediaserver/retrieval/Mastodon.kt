@@ -20,9 +20,10 @@ import nl.adaptivity.xmlutil.serialization.XML
 
 // TODO Also support atom (`https://notnow.dev/users/zhuowei/feed.atom`)
 
+@Serializable
 data class MastodonUser(val server: String, val username: String)
 
-class Mastodon(val user: MastodonUser) : AuthenticatedSocialPlatform {
+class Mastodon(val followingsOf: List<MastodonUser>) : AuthenticatedSocialPlatform {
     override val platformId = PlatformId.Mastodon
 
     private val http = HttpClient(CIO) {
@@ -39,6 +40,10 @@ class Mastodon(val user: MastodonUser) : AuthenticatedSocialPlatform {
     }
 
     override suspend fun getFeed(): List<FeedItem> {
+        return followingsOf.flatMap { getFeed(it) }
+    }
+
+    private suspend fun getFeed(user: MastodonUser): List<FeedItem> {
         val followingsUrlFirst = "${user.server}/@${user.username}/following.json?page=1"
         val followedUsers: List<String> =
             http.paginate<FollowingsResponse>(followingsUrlFirst) { it.next }.flatMap { it.orderedItems }

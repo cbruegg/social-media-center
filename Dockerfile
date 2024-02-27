@@ -24,4 +24,4 @@ EXPOSE 8000
 ENTRYPOINT ["/app/social-media-server/build/distributions/social-media-server-1.0-SNAPSHOT/bin/social-media-server"]
 
 # Pass parameters to the Gradle project
-CMD ["/app/twrss/run.sh", "/data"]
+CMD ["/app/twrss/run.sh", "/data", "8000"]
