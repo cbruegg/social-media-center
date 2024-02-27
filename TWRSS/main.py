@@ -1,6 +1,6 @@
+import time
 from datetime import date, datetime
 import os.path
-import time
 import sys
 import json
 
@@ -8,9 +8,14 @@ import twikit
 from twikit import Client
 from dateutil import parser
 
+MAX_PAGES = 2
+SECONDS_BETWEEN_PAGES = 5
+CREDENTIALS_FILE = "credentials.json"
+COOKIES_FILE = "cookies.json"
+
 
 def main(list_id: str, data_path: str) -> None:
-    credentials_path = f"{data_path}/credentials.json"
+    credentials_path = f"{data_path}/{CREDENTIALS_FILE}"
     with open(credentials_path, "r") as file:
         loaded_data = json.load(file)
 
@@ -21,7 +26,7 @@ def main(list_id: str, data_path: str) -> None:
     # Initialize client
     client = Client('en-US')
 
-    cookies_path = f"{data_path}/cookies.json"
+    cookies_path = f"{data_path}/{COOKIES_FILE}"
     if os.path.isfile(cookies_path):
         client.load_cookies(cookies_path)
 
@@ -37,20 +42,15 @@ def main(list_id: str, data_path: str) -> None:
 
     # list_id = "1757481771950621108"
     tweets = client.get_list_tweets(list_id)
-    for tweet in tweets:
-        if tweet.user is None:
-            pass
+    for _ in range(MAX_PAGES):
+        if len(tweets) == 0:
+            break
 
-        feed_items.append(tweet_to_feed_item(tweet))
+        for tweet in filter(lambda tweet: tweet.user is not None, tweets):
+            feed_items.append(tweet_to_feed_item(tweet))
 
-    time.sleep(5)
-
-    tweets = tweets.next()
-    for tweet in tweets:
-        if tweet.user is None:
-            pass
-
-        feed_items.append(tweet_to_feed_item(tweet))
+        time.sleep(SECONDS_BETWEEN_PAGES)
+        tweets = tweets.next()
 
     print(json.dumps(feed_items, default=json_serial))
 
@@ -69,8 +69,6 @@ def tweet_to_feed_item(tweet: twikit.Tweet):
 
 
 def json_serial(obj):
-    """JSON serializer for objects not serializable by default json code"""
-
     if isinstance(obj, (datetime, date)):
         return obj.isoformat()
     raise TypeError("Type %s not serializable" % type(obj))
