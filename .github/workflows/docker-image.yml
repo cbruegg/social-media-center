@@ -17,10 +17,24 @@ jobs:
       packages: write
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Build the Docker image
-      run: |
-        tag=$(date +%s)
-        echo ${{secrets.GITHUB_TOKEN}} | docker login ghcr.io -u cbruegg --password-stdin
-        docker build . --file Dockerfile --tag ghcr.io/cbruegg/social-media-center:$tag
-        docker push ghcr.io/cbruegg/social-media-center:$tag
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    - name: Login to ghcr.io
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Build and push
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: |
+          ghcr.io/cbruegg/social-media-center:${{ env.GITHUB_SHA }}
+          ghcr.io/cbruegg/social-media-center:latest
