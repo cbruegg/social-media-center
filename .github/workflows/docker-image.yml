@@ -18,6 +18,6 @@ jobs:
     - name: Build the Docker image
       run: |
         tag=$(date +%s)
-        echo ${{secrets.GITHUB_TOKEN}} | docker login ghcr.io -u cbruegg --pasword-stdin
+        echo ${{secrets.GITHUB_TOKEN}} | docker login ghcr.io -u cbruegg --password-stdin
         docker build . --file Dockerfile --tag social-media-center:$tag
         docker push ghcr.io/cbruegg/social-media-center:$tag
