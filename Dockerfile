@@ -17,7 +17,7 @@ RUN unzip /build/social-media-server/build/distributions/social-media-server-1.0
 
 
 FROM alpine:3.19.1
-COPY --from=build /build/social-media-server/build/distributions/social-media-server-1.0-SNAPSHOT /app/social-media-server
+COPY --from=build /build/social-media-server/social-media-server-1.0-SNAPSHOT /app/social-media-server
 COPY TWRSS /app/twrss
 
 RUN apk add --no-cache \
