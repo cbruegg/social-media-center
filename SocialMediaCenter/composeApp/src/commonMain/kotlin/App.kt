@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -68,9 +69,12 @@ fun App() {
 
 @Composable
 private fun FeedItemRow(feedItem: FeedItem, modifier: Modifier = Modifier) {
-    Card(modifier.padding(8.dp).clickable {
-        // TODO Open feedItem.link
-    }) {
+    val uriHandler = LocalUriHandler.current
+
+    Card(modifier = modifier
+        .padding(8.dp)
+        .clickable { uriHandler.openUri(feedItem.link) }
+    ) {
         Row(Modifier.padding(8.dp)) {
             AsyncImage(
                 model = feedItem.authorImageUrl,
