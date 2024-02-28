@@ -31,6 +31,13 @@ import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
+// TODO: Configurable server
+// TODO: Remember timeline state (across devices?)
+// TODO: Open corresponding app instead of browser
+// TODO: Nicer time format, make it smaller and gray
+// TODO: Support Mastodon's HTML posts
+// TODO: (Configurable?) maximum post height (Mastodon posts can be very long)
+
 @OptIn(ExperimentalResourceApi::class)
 @Composable
 @Preview
