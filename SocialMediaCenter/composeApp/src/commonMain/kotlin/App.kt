@@ -27,18 +27,15 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 // TODO: Configurable server
 // TODO: Remember timeline state (across devices?)
 // TODO: Open corresponding app instead of browser
-// TODO: Nicer time format, make it smaller and gray
-// TODO: Support Mastodon's HTML posts
 // TODO: (Configurable?) maximum post height (Mastodon posts can be very long)
 // TODO: Refresh button
 
@@ -85,6 +82,7 @@ fun App() {
 @Composable
 private fun FeedItemRow(feedItem: FeedItem, modifier: Modifier = Modifier) {
     val uriHandler = LocalUriHandler.current
+    val formattedDate = remember(feedItem) { getPlatform().formatFeedItemDate(feedItem.published) }
 
     Card(modifier = modifier
         .fillMaxWidth()
@@ -120,8 +118,10 @@ private fun FeedItemRow(feedItem: FeedItem, modifier: Modifier = Modifier) {
                     Text(feedItem.text) // TODO Linkify
                 }
                 Text(
-                    feedItem.published.toLocalDateTime(TimeZone.currentSystemDefault()).toString()
-                ) // TODO Proper format
+                    text = formattedDate,
+                    color = Color.Gray,
+                    fontSize = 12.sp
+                )
             }
         }
     }

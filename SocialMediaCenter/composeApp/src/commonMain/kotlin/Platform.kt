@@ -1,5 +1,7 @@
+import kotlinx.datetime.Instant
+
 interface Platform {
-    val name: String
+    fun formatFeedItemDate(instant: Instant): String
 }
 
 expect fun getPlatform(): Platform

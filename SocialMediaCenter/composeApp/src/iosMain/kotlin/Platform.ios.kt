@@ -1,7 +1,16 @@
-import platform.UIKit.UIDevice
+import kotlinx.datetime.Instant
+import kotlinx.datetime.toNSDate
+import platform.Foundation.NSDateFormatter
+import platform.Foundation.NSDateFormatterMediumStyle
 
-class IOSPlatform: Platform {
-    override val name: String = UIDevice.currentDevice.systemName() + " " + UIDevice.currentDevice.systemVersion
+object IOSPlatform: Platform {
+    private val formatter = NSDateFormatter().apply {
+        dateStyle = NSDateFormatterMediumStyle
+        timeStyle = NSDateFormatterMediumStyle
+    }
+    override fun formatFeedItemDate(instant: Instant): String {
+        return formatter.stringFromDate(instant.toNSDate())
+    }
 }
 
-actual fun getPlatform(): Platform = IOSPlatform()
+actual fun getPlatform(): Platform = IOSPlatform
