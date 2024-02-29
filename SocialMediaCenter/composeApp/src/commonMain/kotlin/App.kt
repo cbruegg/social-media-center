@@ -39,6 +39,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 // TODO: Nicer time format, make it smaller and gray
 // TODO: Support Mastodon's HTML posts
 // TODO: (Configurable?) maximum post height (Mastodon posts can be very long)
+// TODO: Refresh button
 
 @OptIn(ExperimentalResourceApi::class)
 @Composable
@@ -53,7 +54,10 @@ fun App() {
             }
         }
 
-        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             feedItemResult?.let { feedItemResult ->
                 feedItemResult.fold(
                     onSuccess = { feedItems ->
@@ -82,7 +86,6 @@ private fun FeedItemRow(feedItem: FeedItem, modifier: Modifier = Modifier) {
 
     Card(modifier = modifier
         .fillMaxWidth()
-        .padding(8.dp)
         .clickable { uriHandler.openUri(feedItem.link) }
     ) {
         Row(Modifier.padding(8.dp)) {
@@ -98,12 +101,17 @@ private fun FeedItemRow(feedItem: FeedItem, modifier: Modifier = Modifier) {
             Column {
                 Text(feedItem.author, fontWeight = FontWeight.Bold)
                 if (feedItem.platform.hasHtmlText) {
-                    val annotatedString =
-                        feedItem.text.parseHtml(linkColor = MaterialTheme.colors.primary)
+                    // TODO `remember` this
+                    val annotatedString = feedItem.text.parseHtml(
+                        linkColor = MaterialTheme.colors.primary,
+                        maxLinkLength = 100
+                    )
                     ClickableText(annotatedString, style = LocalTextStyle.current) { offset ->
                         val url = annotatedString.getStringAnnotations(start = offset, end = offset)
                             .firstOrNull()?.item
-                        if (url != null) uriHandler.openUri(url) else uriHandler.openUri(feedItem.link)
+                        if (!url.isNullOrEmpty()) uriHandler.openUri(url) else uriHandler.openUri(
+                            feedItem.link
+                        )
                     }
                 } else {
                     Text(feedItem.text) // TODO Linkify

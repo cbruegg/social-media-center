@@ -8,11 +8,15 @@ import com.mohamedrejeb.ksoup.entities.KsoupEntities
 import com.mohamedrejeb.ksoup.html.parser.KsoupHtmlHandler
 import com.mohamedrejeb.ksoup.html.parser.KsoupHtmlParser
 
-// TODO Reply with this to stackoverflow post? https://stackoverflow.com/a/68241339/1502352
-
-// TODO Add feature to automatically shorten links?
-fun String.parseHtml(linkColor: Color, requiresHtmlDecode: Boolean = true): AnnotatedString {
+fun String.parseHtml(
+    linkColor: Color,
+    maxLinkLength: Int = Int.MAX_VALUE,
+    requiresHtmlDecode: Boolean = true
+): AnnotatedString {
     val string = AnnotatedString.Builder()
+
+    var visitedLinkUrl: String? = null // set in onOpenTag, cleared in onCloseTag
+    var visitedLinkText = "" // appended to in text handler if visitedLinkUrl != null
 
     val handler = KsoupHtmlHandler
         .Builder()
@@ -21,7 +25,10 @@ fun String.parseHtml(linkColor: Color, requiresHtmlDecode: Boolean = true): Anno
                 "p", "span" -> {}
                 "br" -> string.append('\n')
                 "a" -> {
-                    string.pushStringAnnotation("link", attributes["href"] ?: "")
+                    val link = attributes["href"]
+                    visitedLinkUrl = link
+                    // TODO Try pushUrlAnnotation instead
+                    string.pushStringAnnotation("link", link ?: "")
                     string.pushStyle(
                         SpanStyle(
                             color = linkColor,
@@ -44,16 +51,33 @@ fun String.parseHtml(linkColor: Color, requiresHtmlDecode: Boolean = true): Anno
                 "span", "br" -> {}
                 "b", "u", "i", "s" -> string.pop()
                 "a" -> {
+                    // don't shorten links where the text is not the URL itself
+                    val textIsUrl = visitedLinkUrl?.startsWith(visitedLinkText) == true
+                    if (textIsUrl) {
+                        string.append(visitedLinkText.ellipsize(maxLinkLength))
+                    } else {
+                        string.append(visitedLinkText)
+                    }
+
                     string.pop() // corresponds to pushStyle
                     string.pop() // corresponds to pushStringAnnotation
+                    visitedLinkUrl = null // reset
+                    visitedLinkText = "" // reset
                 }
 
                 else -> println("onCloseTag: Unhandled span $name")
             }
         }
         .onText { text ->
-            println("text=$text")
-            string.append(text)
+            if (visitedLinkUrl != null) {
+                // we are currently visiting a link. Capture all parts of the link text that
+                // may be split into multiple spans by Mastodon into one combined String
+                visitedLinkText += text
+            } else {
+                string.append(text)
+            }
+
+
 
         }
         .build()
@@ -67,4 +91,15 @@ fun String.parseHtml(linkColor: Color, requiresHtmlDecode: Boolean = true): Anno
     ksoupHtmlParser.end()
 
     return string.toAnnotatedString()
+}
+
+/**
+ * @param maxLength Must be >= 2 to display at least one character of the original string plus
+ *                  an ellipsis character.
+ */
+private fun String.ellipsize(maxLength: Int): String {
+    check(maxLength >= 2) { "maxLength must be >= 2" }
+    if (length <= maxLength) return this
+
+    return substring(0, maxLength - 1) + "…"
 }
