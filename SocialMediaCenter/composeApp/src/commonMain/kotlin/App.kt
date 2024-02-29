@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.Card
 import androidx.compose.material.CircularProgressIndicator
+import androidx.compose.material.LocalTextStyle
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -79,6 +81,7 @@ private fun FeedItemRow(feedItem: FeedItem, modifier: Modifier = Modifier) {
     val uriHandler = LocalUriHandler.current
 
     Card(modifier = modifier
+        .fillMaxWidth()
         .padding(8.dp)
         .clickable { uriHandler.openUri(feedItem.link) }
     ) {
@@ -94,7 +97,17 @@ private fun FeedItemRow(feedItem: FeedItem, modifier: Modifier = Modifier) {
             )
             Column {
                 Text(feedItem.author, fontWeight = FontWeight.Bold)
-                Text(feedItem.text)
+                if (feedItem.platform.hasHtmlText) {
+                    val annotatedString =
+                        feedItem.text.parseHtml(linkColor = MaterialTheme.colors.primary)
+                    ClickableText(annotatedString, style = LocalTextStyle.current) { offset ->
+                        val url = annotatedString.getStringAnnotations(start = offset, end = offset)
+                            .firstOrNull()?.item
+                        if (url != null) uriHandler.openUri(url) else uriHandler.openUri(feedItem.link)
+                    }
+                } else {
+                    Text(feedItem.text) // TODO Linkify
+                }
                 Text(
                     feedItem.published.toLocalDateTime(TimeZone.currentSystemDefault()).toString()
                 ) // TODO Proper format
@@ -102,3 +115,5 @@ private fun FeedItemRow(feedItem: FeedItem, modifier: Modifier = Modifier) {
         }
     }
 }
+
+private val PlatformId.hasHtmlText get() = this == PlatformId.Mastodon

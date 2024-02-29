@@ -73,6 +73,8 @@ kotlin {
             implementation(libs.coil)
             implementation(libs.coil.compose)
             implementation(libs.coil.network)
+            implementation(libs.ksoup.html)
+            implementation(libs.ksoup.entities)
         }
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
