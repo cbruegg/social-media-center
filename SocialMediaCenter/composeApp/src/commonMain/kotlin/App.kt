@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import components.LinkifiedText
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -115,7 +116,7 @@ private fun FeedItemRow(feedItem: FeedItem, modifier: Modifier = Modifier) {
                             uriHandler.openUri(feedItem.link)
                     }
                 } else {
-                    Text(feedItem.text) // TODO Linkify
+                    LinkifiedText(feedItem.text)
                 }
                 Text(
                     text = formattedDate,
