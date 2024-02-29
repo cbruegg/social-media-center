@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -80,6 +81,7 @@ fun App() {
     }
 }
 
+@OptIn(ExperimentalTextApi::class)
 @Composable
 private fun FeedItemRow(feedItem: FeedItem, modifier: Modifier = Modifier) {
     val uriHandler = LocalUriHandler.current
@@ -107,11 +109,12 @@ private fun FeedItemRow(feedItem: FeedItem, modifier: Modifier = Modifier) {
                         maxLinkLength = 100
                     )
                     ClickableText(annotatedString, style = LocalTextStyle.current) { offset ->
-                        val url = annotatedString.getStringAnnotations(start = offset, end = offset)
-                            .firstOrNull()?.item
-                        if (!url.isNullOrEmpty()) uriHandler.openUri(url) else uriHandler.openUri(
-                            feedItem.link
-                        )
+                        val url = annotatedString.getUrlAnnotations(start = offset, end = offset)
+                            .firstOrNull()?.item?.url
+                        if (!url.isNullOrEmpty())
+                            uriHandler.openUri(url)
+                        else
+                            uriHandler.openUri(feedItem.link)
                     }
                 } else {
                     Text(feedItem.text) // TODO Linkify

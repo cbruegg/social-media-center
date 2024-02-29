@@ -1,6 +1,8 @@
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.UrlAnnotation
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -8,6 +10,7 @@ import com.mohamedrejeb.ksoup.entities.KsoupEntities
 import com.mohamedrejeb.ksoup.html.parser.KsoupHtmlHandler
 import com.mohamedrejeb.ksoup.html.parser.KsoupHtmlParser
 
+@ExperimentalTextApi
 fun String.parseHtml(
     linkColor: Color,
     maxLinkLength: Int = Int.MAX_VALUE,
@@ -27,8 +30,9 @@ fun String.parseHtml(
                 "a" -> {
                     val link = attributes["href"]
                     visitedLinkUrl = link
-                    // TODO Try pushUrlAnnotation instead
-                    string.pushStringAnnotation("link", link ?: "")
+
+                    // replaceable with pushStringAnnotation if API goes away due to experimental status
+                    string.pushUrlAnnotation(UrlAnnotation(link ?: ""))
                     string.pushStyle(
                         SpanStyle(
                             color = linkColor,
@@ -60,7 +64,7 @@ fun String.parseHtml(
                     }
 
                     string.pop() // corresponds to pushStyle
-                    string.pop() // corresponds to pushStringAnnotation
+                    string.pop() // corresponds to pushUrlAnnotation
                     visitedLinkUrl = null // reset
                     visitedLinkText = "" // reset
                 }
