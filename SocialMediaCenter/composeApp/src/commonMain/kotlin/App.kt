@@ -82,7 +82,12 @@ fun App() {
 @Composable
 private fun FeedItemRow(feedItem: FeedItem, modifier: Modifier = Modifier) {
     val uriHandler = LocalUriHandler.current
+    val linkColor = MaterialTheme.colors.primary
+
     val formattedDate = remember(feedItem) { getPlatform().formatFeedItemDate(feedItem.published) }
+    val annotatedString = remember(feedItem, linkColor) {
+        feedItem.text.parseHtml(linkColor, maxLinkLength = 100)
+    }
 
     Card(modifier = modifier
         .fillMaxWidth()
@@ -101,11 +106,6 @@ private fun FeedItemRow(feedItem: FeedItem, modifier: Modifier = Modifier) {
             Column {
                 Text(feedItem.author, fontWeight = FontWeight.Bold)
                 if (feedItem.platform.hasHtmlText) {
-                    // TODO `remember` this
-                    val annotatedString = feedItem.text.parseHtml(
-                        linkColor = MaterialTheme.colors.primary,
-                        maxLinkLength = 100
-                    )
                     ClickableText(annotatedString, style = LocalTextStyle.current) { offset ->
                         val url = annotatedString.getUrlAnnotations(start = offset, end = offset)
                             .firstOrNull()?.item?.url
