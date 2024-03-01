@@ -17,7 +17,11 @@ import androidx.compose.ui.text.style.TextDecoration
 // Inspired by https://stackoverflow.com/a/66235329/1502352
 
 @Composable
-fun LinkifiedText(text: String, modifier: Modifier = Modifier) {
+fun LinkifiedText(
+    text: String,
+    defaultClickHandler: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
     val uriHandler = LocalUriHandler.current
     val layoutResult = remember {
         mutableStateOf<TextLayoutResult?>(null)
@@ -43,7 +47,7 @@ fun LinkifiedText(text: String, modifier: Modifier = Modifier) {
             }
         }
     }
-    // TODO: Theoretically, this should also just be ClickableText instead of Text with pointerInput modifier
+    // TODO: Theoretically, this should also just be ClickableText instead of Text with pointerInput modifier. or not? maybe this can support ripple...
     Text(
         text = annotatedString,
         onTextLayout = { layoutResult.value = it },
@@ -52,12 +56,15 @@ fun LinkifiedText(text: String, modifier: Modifier = Modifier) {
                 detectTapGestures { offsetPosition ->
                     layoutResult.value?.let {
                         val position = it.getOffsetForPosition(offsetPosition)
-                        annotatedString.getStringAnnotations(position, position).firstOrNull()
-                            ?.let { result ->
-                                if (result.tag == "URL") {
-                                    uriHandler.openUri(result.item)
-                                }
+                        val annotation =
+                            annotatedString.getStringAnnotations(position, position).firstOrNull()
+                        if (annotation != null) {
+                            if (annotation.tag == "URL") {
+                                uriHandler.openUri(annotation.item)
                             }
+                        } else {
+                            defaultClickHandler()
+                        }
                     }
                 }
             }

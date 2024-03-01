@@ -14,6 +14,7 @@ import androidx.compose.material.LocalTextStyle
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.mohamedrejeb.ksoup.entities.KsoupEntities
 import components.LinkifiedText
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.ExperimentalResourceApi
@@ -36,7 +38,6 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 
 // TODO: Configurable server
 // TODO: Remember timeline state (across devices?)
-// TODO: Open corresponding app instead of browser
 // TODO: (Configurable?) maximum post height (Mastodon posts can be very long)
 // TODO: Refresh button
 
@@ -45,35 +46,38 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 @Preview
 fun App() {
     MaterialTheme {
-        var feedItemResult: Result<List<FeedItem>>? by remember { mutableStateOf(null) }
+        val uriHandler = getPlatform().uriHandler ?: LocalUriHandler.current
+        CompositionLocalProvider(LocalUriHandler provides uriHandler) {
+            var feedItemResult: Result<List<FeedItem>>? by remember { mutableStateOf(null) }
 
-        LaunchedEffect(Unit) {
-            launch {
-                feedItemResult = feedLoader.fetch()
+            LaunchedEffect(Unit) {
+                launch {
+                    feedItemResult = feedLoader.fetch()
+                }
             }
-        }
 
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            feedItemResult?.let { feedItemResult ->
-                feedItemResult.fold(
-                    onSuccess = { feedItems ->
-                        LazyColumn {
-                            items(
-                                feedItems.size,
-                                key = { feedItems[it].id },
-                                itemContent = { FeedItemRow(feedItems[it]) }
-                            )
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                feedItemResult?.let { feedItemResult ->
+                    feedItemResult.fold(
+                        onSuccess = { feedItems ->
+                            LazyColumn {
+                                items(
+                                    feedItems.size,
+                                    key = { feedItems[it].id },
+                                    itemContent = { FeedItemRow(feedItems[it]) }
+                                )
+                            }
+                        },
+                        onFailure = { loadError ->
+                            Text("Loading error! ${loadError.message}")
                         }
-                    },
-                    onFailure = { loadError ->
-                        Text("Loading error! ${loadError.message}")
-                    }
-                )
-            } ?: run {
-                CircularProgressIndicator()
+                    )
+                } ?: run {
+                    CircularProgressIndicator()
+                }
             }
         }
     }
@@ -83,12 +87,10 @@ fun App() {
 @Composable
 private fun FeedItemRow(feedItem: FeedItem, modifier: Modifier = Modifier) {
     val uriHandler = LocalUriHandler.current
+    println(uriHandler.toString())
     val linkColor = MaterialTheme.colors.primary
 
     val formattedDate = remember(feedItem) { getPlatform().formatFeedItemDate(feedItem.published) }
-    val annotatedString = remember(feedItem, linkColor) {
-        feedItem.text.parseHtml(linkColor, maxLinkLength = 100)
-    }
 
     Card(modifier = modifier
         .fillMaxWidth()
@@ -107,16 +109,22 @@ private fun FeedItemRow(feedItem: FeedItem, modifier: Modifier = Modifier) {
             Column {
                 Text(feedItem.author, fontWeight = FontWeight.Bold)
                 if (feedItem.platform.hasHtmlText) {
+                    val annotatedString = remember(feedItem, linkColor) {
+                        feedItem.text.parseHtml(linkColor, maxLinkLength = 100)
+                    }
                     ClickableText(annotatedString, style = LocalTextStyle.current) { offset ->
                         val url = annotatedString.getUrlAnnotations(start = offset, end = offset)
                             .firstOrNull()?.item?.url
                         if (!url.isNullOrEmpty())
-                            uriHandler.openUri(url)
+                            uriHandler.openUri(url) // TODO This works for mastodon.social, but not all other servers like norden.social...
                         else
                             uriHandler.openUri(feedItem.link)
                     }
                 } else {
-                    LinkifiedText(feedItem.text)
+                    val decoded = remember(feedItem) { KsoupEntities.decodeHtml(feedItem.text) }
+                    LinkifiedText(
+                        text = decoded,
+                        defaultClickHandler = { uriHandler.openUri(feedItem.link) })
                 }
                 Text(
                     text = formattedDate,
