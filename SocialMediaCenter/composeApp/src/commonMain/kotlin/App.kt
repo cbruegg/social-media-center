@@ -1,3 +1,4 @@
+
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -41,22 +42,24 @@ import coil3.compose.AsyncImage
 import com.mohamedrejeb.ksoup.entities.KsoupEntities
 import components.LinkifiedText
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import persistence.rememberForeverLazyListState
+import util.LocalContextualUriHandler
+import util.toContextualUriHandler
 
 // TODO: Configurable server
 // TODO: Remember timeline state across devices
 // TODO: (Configurable?) maximum post height (Mastodon posts can be very long)
 // TODO: Move logic to some ViewModel
 
-@OptIn(ExperimentalResourceApi::class, ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 @Preview
 fun App() {
     MaterialTheme {
-        val uriHandler = getPlatform().uriHandler ?: LocalUriHandler.current
-        CompositionLocalProvider(LocalUriHandler provides uriHandler) {
+        val uriHandler =
+            getPlatform().uriHandler ?: LocalUriHandler.current.toContextualUriHandler()
+        CompositionLocalProvider(LocalContextualUriHandler provides uriHandler) {
             val scope = rememberCoroutineScope()
             var feedItems: List<FeedItem>? by remember { mutableStateOf(null) }
             var lastLoadFailure: Throwable? by remember { mutableStateOf(null) }
@@ -118,7 +121,7 @@ private fun rememberForeverFeedItemsListState(feedItems: List<FeedItem>): LazyLi
 @OptIn(ExperimentalTextApi::class)
 @Composable
 private fun FeedItemRow(feedItem: FeedItem, modifier: Modifier = Modifier) {
-    val uriHandler = LocalUriHandler.current
+    val uriHandler = LocalContextualUriHandler.current
     val linkColor = MaterialTheme.colors.primary
 
     val formattedDate = remember(feedItem) { getPlatform().formatFeedItemDate(feedItem.published) }
@@ -146,16 +149,22 @@ private fun FeedItemRow(feedItem: FeedItem, modifier: Modifier = Modifier) {
                     ClickableText(annotatedString, style = LocalTextStyle.current) { offset ->
                         val url = annotatedString.getUrlAnnotations(start = offset, end = offset)
                             .firstOrNull()?.item?.url
+                        println(feedItem)
                         if (!url.isNullOrEmpty())
                             uriHandler.openUri(url)
                         else
-                            uriHandler.openUri(feedItem.link)
+                            uriHandler.openPostUri(feedItem.link, feedItem.platform)
                     }
                 } else {
                     val decoded = remember(feedItem) { KsoupEntities.decodeHtml(feedItem.text) }
                     LinkifiedText(
                         text = decoded,
-                        defaultClickHandler = { uriHandler.openUri(feedItem.link) })
+                        defaultClickHandler = {
+                            uriHandler.openPostUri(
+                                feedItem.link,
+                                feedItem.platform
+                            )
+                        })
                 }
                 Text(
                     text = formattedDate,

@@ -51,6 +51,9 @@
       <string>http</string>
       <string>https</string>
       <string>opener</string>
+      <string>mastodon</string>
+      <string>twitter</string>
+      <string>mammoth</string>
     </array>
 </dict>
 </plist>

@@ -1,4 +1,4 @@
-import androidx.compose.ui.platform.UriHandler
+import io.ktor.http.Url
 import io.ktor.http.encodeURLPath
 import kotlinx.datetime.Instant
 import kotlinx.datetime.toNSDate
@@ -10,6 +10,8 @@ import platform.Foundation.NSDateFormatterMediumStyle
 import platform.Foundation.NSURL
 import platform.Foundation.NSUserDefaults
 import platform.UIKit.UIApplication
+import util.ContextualUriHandler
+import util.isNumeric
 
 object IOSPlatform : Platform {
     private val formatter = NSDateFormatter().apply {
@@ -26,28 +28,90 @@ object IOSPlatform : Platform {
     override val uriHandler = IOSUriHandler
 }
 
-object IOSUriHandler : UriHandler {
+object IOSUriHandler : ContextualUriHandler {
     override fun openUri(uri: String) {
+        // TODO Really never use Opener?
+        println("Opening with standard handler: $uri")
+        UIApplication.sharedApplication.openURL(NSURL(string = uri))
+    }
+
+    override fun openPostUri(uri: String, platformOfPost: PlatformId) {
         val sharedApplication = UIApplication.sharedApplication
 
-        // TODO Optimize this implementation. Try apps in the following order of preference,
-        //      then cache the result:
-        //      Twitter (for Twitter posts); some Mastodon app (for Mastodon posts); Opener; Browser
+        when (platformOfPost) {
+            PlatformId.BlueSky -> openUri(uri)
 
-        val openerUri = "opener://x-callback-url/show-options?url=${uri.encodeURLPath()}"
-        val openerUrl = NSURL(string = openerUri)
-        if (sharedApplication.canOpenURL(openerUrl)) {
-            println("Opening with opener: $openerUri")
-            sharedApplication.openURL(openerUrl)
-        } else {
-            println("Opening without opener: $uri")
-            sharedApplication.openURL(NSURL(string = uri))
+            PlatformId.Twitter -> {
+                val postId = Url(uri).pathSegments.lastOrNull { it.isNumeric() }
+                if (postId != null) {
+                    val twitterAppUrl = NSURL(string = "twitter://status?id=${postId}")
+                    if (sharedApplication.canOpenURL(twitterAppUrl)) {
+                        println("Opening Twitter URL: ${twitterAppUrl.absoluteString}")
+                        sharedApplication.openURL(twitterAppUrl)
+                        return
+                    }
+                }
+
+                val openerUrl =
+                    NSURL(string = "opener://x-callback-url/show-options?url=${uri.encodeURLPath()}")
+                if (sharedApplication.canOpenURL(openerUrl)) {
+                    println("Opening Opener URL: ${openerUrl.absoluteString}")
+                    sharedApplication.openURL(openerUrl)
+                    return
+                }
+
+                openUri(uri)
+            }
+
+            PlatformId.Mastodon -> {
+                val postId = Url(uri).pathSegments.lastOrNull { it.isNumeric() }
+                if (false && postId != null) {
+                    // Disabled for now as the postId is not the postId as known by the user's
+                    // own Mastodon server. This is because we don't use proper Mastodon APIs,
+                    // but get post data from the RSS feeds of each followed user's server.
+                    // The post IDs on those servers are not the same as the post IDs defined by
+                    // the user's server.
+                    // Unfortunately, the official Mastodon iOS app currently does not support
+                    // opening arbitrary Mastodon post URLs either:
+                    // https://github.com/mastodon/mastodon-ios/issues/968
+                    // We could probably get the post ID by not getting post data through RSS,
+                    // but always through the user's own server instead:
+                    // https://stackoverflow.com/a/76288210/1502352
+
+                    val officialMastodonAppUrl = NSURL(string = "mastodon://status/${postId}")
+                    if (sharedApplication.canOpenURL(officialMastodonAppUrl)) {
+                        println("Opening Mastodon URL: ${officialMastodonAppUrl.absoluteString}")
+                        sharedApplication.openURL(officialMastodonAppUrl)
+                        return
+                    }
+                }
+
+                // See SceneDelegate.swift in https://github.dev/TheBLVD/mammoth
+                val mammothUrl =
+                    NSURL(string = "mammoth://" + uri.removePrefix("https://"))
+                if (sharedApplication.canOpenURL(mammothUrl)) {
+                    println("Opening Mammoth URL: ${mammothUrl.absoluteString}")
+                    sharedApplication.openURL(mammothUrl)
+                    return
+                }
+
+                val openerUrl =
+                    NSURL(string = "opener://x-callback-url/show-options?url=${uri.encodeURLPath()}")
+                if (sharedApplication.canOpenURL(openerUrl)) {
+                    println("Opening Opener URL: ${openerUrl.absoluteString}")
+                    sharedApplication.openURL(openerUrl)
+                    return
+                }
+
+                openUri(uri)
+            }
         }
     }
 }
 
 private object IOSPersistence : Persistence {
     private const val keyPrefix = "IOSPersistence_"
+
     override fun <T : Any> save(key: String, value: T, serializer: KSerializer<T>) {
         val serialized = Json.encodeToString(serializer, value)
         println("Storing $serialized for $key")

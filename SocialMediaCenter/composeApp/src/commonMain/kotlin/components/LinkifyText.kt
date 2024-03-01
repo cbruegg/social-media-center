@@ -8,11 +8,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
+import util.LocalContextualUriHandler
 
 // Inspired by https://stackoverflow.com/a/66235329/1502352
 
@@ -22,7 +22,7 @@ fun LinkifiedText(
     defaultClickHandler: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val uriHandler = LocalUriHandler.current
+    val uriHandler = LocalContextualUriHandler.current
     val layoutResult = remember {
         mutableStateOf<TextLayoutResult?>(null)
     }
