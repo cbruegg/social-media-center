@@ -1,4 +1,3 @@
-
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -9,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.Card
@@ -42,11 +43,11 @@ import components.LinkifiedText
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import persistence.rememberForeverLazyListState
 
 // TODO: Configurable server
-// TODO: Remember timeline state (across devices?)
+// TODO: Remember timeline state across devices
 // TODO: (Configurable?) maximum post height (Mastodon posts can be very long)
-// TODO: Refresh button
 // TODO: Move logic to some ViewModel
 
 @OptIn(ExperimentalResourceApi::class, ExperimentalMaterialApi::class)
@@ -80,7 +81,7 @@ fun App() {
                         Text("Loading error! ${lastLoadFailure.message}") // TODO: Nicer display
                     }
                     feedItems?.let { feedItems ->
-                        LazyColumn {
+                        LazyColumn(state = rememberForeverFeedItemsListState(feedItems)) {
                             items(
                                 feedItems.size,
                                 key = { feedItems[it].id },
@@ -99,11 +100,25 @@ fun App() {
     }
 }
 
+@Composable
+private fun rememberForeverFeedItemsListState(feedItems: List<FeedItem>): LazyListState {
+    val persistence = getPlatform().persistence
+    return if (persistence != null) {
+        rememberForeverLazyListState(
+            "appScrollState",
+            persistence,
+            idOfItemAt = { feedItems[it].id },
+            indexOfItem = { id -> feedItems.indexOfFirst { it.id == id } }
+        )
+    } else {
+        rememberLazyListState()
+    }
+}
+
 @OptIn(ExperimentalTextApi::class)
 @Composable
 private fun FeedItemRow(feedItem: FeedItem, modifier: Modifier = Modifier) {
     val uriHandler = LocalUriHandler.current
-    println(uriHandler.toString())
     val linkColor = MaterialTheme.colors.primary
 
     val formattedDate = remember(feedItem) { getPlatform().formatFeedItemDate(feedItem.published) }
