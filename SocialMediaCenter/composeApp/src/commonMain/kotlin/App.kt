@@ -1,7 +1,10 @@
+
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -9,16 +12,20 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.Card
-import androidx.compose.material.CircularProgressIndicator
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.LocalTextStyle
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,44 +47,53 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 // TODO: Remember timeline state (across devices?)
 // TODO: (Configurable?) maximum post height (Mastodon posts can be very long)
 // TODO: Refresh button
+// TODO: Move logic to some ViewModel
 
-@OptIn(ExperimentalResourceApi::class)
+@OptIn(ExperimentalResourceApi::class, ExperimentalMaterialApi::class)
 @Composable
 @Preview
 fun App() {
     MaterialTheme {
         val uriHandler = getPlatform().uriHandler ?: LocalUriHandler.current
         CompositionLocalProvider(LocalUriHandler provides uriHandler) {
-            var feedItemResult: Result<List<FeedItem>>? by remember { mutableStateOf(null) }
+            val scope = rememberCoroutineScope()
+            var feedItems: List<FeedItem>? by remember { mutableStateOf(null) }
+            var lastLoadFailure: Throwable? by remember { mutableStateOf(null) }
+            var isLoading by remember { mutableStateOf(true) }
+            val refresh = suspend {
+                isLoading = true
+                val result = feedLoader.fetch()
+                feedItems = result.getOrNull() ?: feedItems
+                lastLoadFailure = result.exceptionOrNull()
+                isLoading = false
+            }
+            val pullRefreshState =
+                rememberPullRefreshState(isLoading, { scope.launch { refresh() } })
 
             LaunchedEffect(Unit) {
-                launch {
-                    feedItemResult = feedLoader.fetch()
-                }
+                launch { refresh() }
             }
 
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                feedItemResult?.let { feedItemResult ->
-                    feedItemResult.fold(
-                        onSuccess = { feedItems ->
-                            LazyColumn {
-                                items(
-                                    feedItems.size,
-                                    key = { feedItems[it].id },
-                                    itemContent = { FeedItemRow(feedItems[it]) }
-                                )
-                            }
-                        },
-                        onFailure = { loadError ->
-                            Text("Loading error! ${loadError.message}")
+            Box(modifier = Modifier.fillMaxSize().padding(8.dp).pullRefresh(pullRefreshState)) {
+                Column {
+                    lastLoadFailure?.let { lastLoadFailure ->
+                        Text("Loading error! ${lastLoadFailure.message}") // TODO: Nicer display
+                    }
+                    feedItems?.let { feedItems ->
+                        LazyColumn {
+                            items(
+                                feedItems.size,
+                                key = { feedItems[it].id },
+                                itemContent = { FeedItemRow(feedItems[it]) }
+                            )
                         }
-                    )
-                } ?: run {
-                    CircularProgressIndicator()
+                    }
                 }
+                PullRefreshIndicator(
+                    refreshing = isLoading,
+                    state = pullRefreshState,
+                    modifier = Modifier.align(Alignment.TopCenter)
+                )
             }
         }
     }
@@ -116,7 +132,7 @@ private fun FeedItemRow(feedItem: FeedItem, modifier: Modifier = Modifier) {
                         val url = annotatedString.getUrlAnnotations(start = offset, end = offset)
                             .firstOrNull()?.item?.url
                         if (!url.isNullOrEmpty())
-                            uriHandler.openUri(url) // TODO This works for mastodon.social, but not all other servers like norden.social...
+                            uriHandler.openUri(url)
                         else
                             uriHandler.openUri(feedItem.link)
                     }
