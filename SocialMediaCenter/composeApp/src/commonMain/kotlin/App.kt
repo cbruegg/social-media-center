@@ -51,6 +51,8 @@ import util.toContextualUriHandler
 // TODO: Remember timeline state across devices
 // TODO: (Configurable?) maximum post height (Mastodon posts can be very long)
 // TODO: Move logic to some ViewModel
+// TODO: Auto-refresh (every minute + on app relaunch)
+// TODO: Support mentions (maybe not for all platforms)
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
