@@ -11,10 +11,8 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
-import io.ktor.server.plugins.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
-import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.utils.io.*
@@ -27,9 +25,6 @@ import kotlin.io.path.Path
 import kotlin.io.path.readText
 
 // TODO Rename twrss to twadapter
-
-private val ApplicationRequest.baseUrl: Url
-    get() = origin.let { Url("${it.scheme}://${it.serverHost}:${it.serverPort}") }
 
 suspend fun main(args: Array<String>) = coroutineScope {
     val twitterScriptLocation = args.getOrNull(0) ?: error("Missing twitterScriptLocation")
@@ -52,11 +47,11 @@ suspend fun main(args: Array<String>) = coroutineScope {
         routing {
             get("/json") {
                 val isCorsRestricted = context.request.queryParameters["isCorsRestricted"] == "true"
-                val mergedFeed = feedMonitor.getMergedFeed(isCorsRestricted, context.request.baseUrl)
+                val mergedFeed = feedMonitor.getMergedFeed(isCorsRestricted)
                 call.respond(mergedFeed)
             }
             get("/rss") {
-                val mergedFeed = feedMonitor.getMergedFeed(isCorsRestricted = true, context.request.baseUrl)
+                val mergedFeed = feedMonitor.getMergedFeed(isCorsRestricted = true)
                 call.respond(XML.encodeToString(mergedFeed.toRssFeed()))
             }
             get("/proxy") {

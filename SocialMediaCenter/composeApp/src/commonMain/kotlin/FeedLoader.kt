@@ -6,7 +6,9 @@ import kotlinx.serialization.Serializable
 
 class FeedLoader(private val baseUrl: String, private val httpClient: HttpClient) {
     suspend fun fetch(): Result<List<FeedItem>> = runCatching {
-        httpClient.get("$baseUrl/json").body<List<FeedItem>>()
+        httpClient
+            .get("$baseUrl/json?isCorsRestricted=${getPlatform().isCorsRestricted}")
+            .body<List<FeedItem>>()
     }
 }
 

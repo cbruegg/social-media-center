@@ -46,15 +46,14 @@ class FeedMonitor(
 
     /**
      * @param isCorsRestricted If true, image URLs will be replaced with CORS-free ones
-     * @param baseUrl This server's base URL
      */
-    suspend fun getMergedFeed(isCorsRestricted: Boolean, baseUrl: Url): List<FeedItem> = mutex.withLock {
+    suspend fun getMergedFeed(isCorsRestricted: Boolean): List<FeedItem> = mutex.withLock {
         feedByPlatform.values
             .flatMap { wrappedFeedItems -> wrappedFeedItems.asSequence() }
             .map { it.feedItem }
             .map {
                 if (isCorsRestricted && it.authorImageUrl != null && shouldProxyUrlForCors(it.authorImageUrl))
-                    it.copy(authorImageUrl = it.authorImageUrl.proxiedUrl(baseUrl))
+                    it.copy(authorImageUrl = it.authorImageUrl.proxiedUrl())
                 else
                     it
             }
@@ -62,9 +61,9 @@ class FeedMonitor(
     }
 }
 
-private fun String.proxiedUrl(baseUrl: Url): String {
+private fun String.proxiedUrl(): String {
     val urlToProxy = this
-    return URLBuilder(baseUrl).apply {
+    return URLBuilder().apply {
         path("proxy")
         parameters.append("url", urlToProxy)
     }.buildString()
