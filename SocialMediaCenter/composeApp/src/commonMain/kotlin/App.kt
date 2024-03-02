@@ -1,4 +1,3 @@
-
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -13,11 +12,13 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.material.AlertDialog
 import androidx.compose.material.Card
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.LocalTextStyle
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
+import androidx.compose.material.TextButton
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
@@ -75,15 +76,35 @@ fun App() {
             }
             val pullRefreshState =
                 rememberPullRefreshState(isLoading, { scope.launch { refresh() } })
+            var showLastLoadFailure by remember { mutableStateOf(false) }
 
             LaunchedEffect(Unit) {
                 launch { refresh() }
             }
 
+            if (showLastLoadFailure) {
+                AlertDialog(
+                    text = { Text(lastLoadFailure?.message ?: "No error!") },
+                    onDismissRequest = { showLastLoadFailure = false },
+                    dismissButton = {
+                        TextButton(onClick = {
+                            showLastLoadFailure = false
+                        }) { Text("Dismiss") }
+                    },
+                    confirmButton = {}
+                )
+            }
+
             Box(modifier = Modifier.fillMaxSize().padding(8.dp).pullRefresh(pullRefreshState)) {
                 Column {
-                    lastLoadFailure?.let { lastLoadFailure ->
-                        Text("Loading error! ${lastLoadFailure.message}") // TODO: Nicer display
+                    lastLoadFailure?.let { loadFailure ->
+                        Card {
+                            Row {
+                                Text("Loading error!")
+                                TextButton({ showLastLoadFailure = true }) { Text("Details") }
+                                TextButton({ lastLoadFailure = null }) { Text("Dismiss") }
+                            }
+                        }
                     }
                     feedItems?.let { feedItems ->
                         LazyColumn(state = rememberForeverFeedItemsListState(feedItems)) {
