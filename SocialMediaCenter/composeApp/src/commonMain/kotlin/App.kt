@@ -113,7 +113,7 @@ private fun rememberForeverFeedItemsListState(feedItems: List<FeedItem>): LazyLi
             "appScrollState",
             persistence,
             idOfItemAt = { feedItems[it].id },
-            indexOfItem = { id -> feedItems.indexOfFirst { it.id == id } }
+            indexOfItem = { id -> feedItems.indexOfFirst { it.id == id }.takeIf { it != -1 } }
         )
     } else {
         rememberLazyListState()
