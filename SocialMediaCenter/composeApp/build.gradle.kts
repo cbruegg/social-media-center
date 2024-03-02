@@ -1,6 +1,7 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-//import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
-//import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
+import org.jetbrains.kotlin.gradle.plugin.KotlinDependencyHandler
+import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -10,22 +11,22 @@ plugins {
 }
 
 kotlin {
-//    @OptIn(ExperimentalWasmDsl::class)
-//    wasmJs {
-//        moduleName = "composeApp"
-//        browser {
-//            commonWebpackConfig {
-//                outputFileName = "composeApp.js"
-//                devServer = (devServer ?: KotlinWebpackConfig.DevServer()).apply {
-//                    static = (static ?: mutableListOf()).apply {
-//                        // Serve sources to debug inside browser
-//                        add(project.projectDir.path)
-//                    }
-//                }
-//            }
-//        }
-//        binaries.executable()
-//    }
+    @OptIn(ExperimentalWasmDsl::class)
+    wasmJs {
+        moduleName = "composeApp"
+        browser {
+            commonWebpackConfig {
+                outputFileName = "composeApp.js"
+                devServer = (devServer ?: KotlinWebpackConfig.DevServer()).apply {
+                    static = (static ?: mutableListOf()).apply {
+                        // Serve sources to debug inside browser
+                        add(project.projectDir.path)
+                    }
+                }
+            }
+        }
+        binaries.executable()
+    }
     
     androidTarget {
         compilations.all {
@@ -50,6 +51,10 @@ kotlin {
     
     sourceSets {
         val desktopMain by getting
+
+        fun KotlinDependencyHandler.nonWasmDependencies() {
+            implementation(libs.compose.multiplatform.lifecycle.tracker)
+        }
         
         androidMain.dependencies {
             implementation(libs.compose.ui.tooling.preview)
@@ -58,6 +63,7 @@ kotlin {
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.androidx.lifecycle.runtime.ktx)
             implementation(libs.androidx.appcompat)
+            nonWasmDependencies()
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -66,7 +72,6 @@ kotlin {
             implementation(compose.ui)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
-            implementation(libs.compose.multiplatform.lifecycle.tracker)
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
@@ -82,9 +87,11 @@ kotlin {
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
+            nonWasmDependencies()
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
+            nonWasmDependencies()
         }
     }
 }

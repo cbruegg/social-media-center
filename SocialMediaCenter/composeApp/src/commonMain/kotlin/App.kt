@@ -25,7 +25,6 @@ import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,9 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.mohamedrejeb.ksoup.entities.KsoupEntities
-import com.multiplatform.lifecycle.LifecycleEvent
-import com.multiplatform.lifecycle.LifecycleObserver
-import com.multiplatform.lifecycle.LocalLifecycleTracker
+import components.LifecycleHandler
 import components.LinkifiedText
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -156,29 +153,6 @@ fun App() {
                     modifier = Modifier.align(Alignment.TopCenter)
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun LifecycleHandler(
-    onPause: () -> Unit,
-    onResume: () -> Unit
-) {
-    val lifecycleTracker = LocalLifecycleTracker.current
-    DisposableEffect(Unit) {
-        val listener = object : LifecycleObserver {
-            override fun onEvent(event: LifecycleEvent) {
-                when (event) {
-                    LifecycleEvent.OnPauseEvent -> onPause()
-                    LifecycleEvent.OnResumeEvent -> onResume()
-                    else -> {}
-                }
-            }
-        }
-        lifecycleTracker.addObserver(listener)
-        onDispose {
-            lifecycleTracker.removeObserver(listener)
         }
     }
 }
