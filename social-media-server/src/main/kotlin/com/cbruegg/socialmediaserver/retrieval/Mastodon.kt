@@ -1,5 +1,8 @@
 package com.cbruegg.socialmediaserver.retrieval
 
+import com.cbruegg.socialmediaserver.atom.Atom
+import com.cbruegg.socialmediaserver.atom.atomContentType
+import com.cbruegg.socialmediaserver.atom.toFeedItem
 import com.cbruegg.socialmediaserver.rss.Rss
 import com.cbruegg.socialmediaserver.rss.mastodonAuthor
 import com.cbruegg.socialmediaserver.rss.rssContentType
@@ -19,8 +22,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import nl.adaptivity.xmlutil.serialization.XML
 
-// TODO Also support atom (`https://notnow.dev/users/zhuowei/feed.atom`)
-
 @Serializable
 data class MastodonUser(val server: String, val username: String)
 
@@ -37,6 +38,11 @@ class Mastodon(val followingsOf: List<MastodonUser>) : AuthenticatedSocialPlatfo
                     ignoreUnknownChildren()
                 }
             }, contentType = rssContentType)
+            xml(XML {
+                defaultPolicy {
+                    ignoreUnknownChildren()
+                }
+            }, contentType = atomContentType)
         }
     }
 
@@ -49,7 +55,7 @@ class Mastodon(val followingsOf: List<MastodonUser>) : AuthenticatedSocialPlatfo
         val followedUsers: List<String> =
             http.paginate<FollowingsResponse>(followingsUrlFirst) { it.next }.flatMap { it.orderedItems }
 
-        val rssFeeds = coroutineScope {
+        val mastodonFeeds = coroutineScope {
             followedUsers
                 .map {
                     async {
@@ -58,7 +64,9 @@ class Mastodon(val followingsOf: List<MastodonUser>) : AuthenticatedSocialPlatfo
                             onSuccess = { response ->
                                 val contentType = response.contentType()?.toString()
                                 if (response.status.isSuccess() && contentType?.contains("rss") == true)
-                                    Result.success(response.body<Rss>())
+                                    runCatching { RssFeed(response.body<Rss>()) }
+                                else if (response.status.isSuccess() && contentType?.contains("atom") == true)
+                                    runCatching { AtomFeed(response.body<Atom>()) }
                                 else
                                     Result.failure(RuntimeException("Could not get RSS feed for $it due to status ${response.status} or contentType ${response.contentType()}"))
                             },
@@ -73,7 +81,8 @@ class Mastodon(val followingsOf: List<MastodonUser>) : AuthenticatedSocialPlatfo
         }
 
         val accountInfoByMastodonAuthor: Map<String, AccountLookupResponse> = coroutineScope {
-            rssFeeds.asSequence()
+            mastodonFeeds.asSequence()
+                .filterIsInstance<Rss>()
                 .flatMap { rssFeed -> rssFeed.channel.item }
                 .mapNotNull { post -> post.mastodonAuthor }
                 .distinct()
@@ -93,20 +102,31 @@ class Mastodon(val followingsOf: List<MastodonUser>) : AuthenticatedSocialPlatfo
                 .toMap()
         }
 
-        return rssFeeds.asSequence()
-            .flatMap { rssFeed -> rssFeed.channel.item }
-            .map { rssItem ->
-                val mastodonAuthor = rssItem.mastodonAuthor
-                val accountInfo = mastodonAuthor?.let { accountInfoByMastodonAuthor[it] }
-                rssItem.toFeedItem(
-                    author = accountInfo?.acct?.let { "@$it" },
-                    authorImageUrl = accountInfo?.avatar
-                )
+        return mastodonFeeds.asSequence()
+            .flatMap { mastodonFeed ->
+                when (mastodonFeed) {
+                    is AtomFeed -> mastodonFeed.atom.entry.asSequence().map { atomEntry ->
+                        atomEntry.toFeedItem(mastodonFeed.atom)
+                    }
+
+                    is RssFeed -> mastodonFeed.rss.channel.item.asSequence().map { rssItem ->
+                        val mastodonAuthor = rssItem.mastodonAuthor
+                        val accountInfo = mastodonAuthor?.let { accountInfoByMastodonAuthor[it] }
+                        rssItem.toFeedItem(
+                            author = accountInfo?.acct?.let { "@$it" },
+                            authorImageUrl = accountInfo?.avatar
+                        )
+                    }
+                }
             }
             .toList()
     }
 
 }
+
+private sealed interface MastodonFeed
+private data class RssFeed(val rss: Rss) : MastodonFeed
+private data class AtomFeed(val atom: Atom) : MastodonFeed
 
 private suspend inline fun <reified T> HttpClient.paginate(firstUrl: String, getNextUrl: (T) -> String?): List<T> {
     val results = mutableListOf<T>()
