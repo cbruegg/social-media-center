@@ -10,4 +10,5 @@ private val httpClient = HttpClient {
     install(HttpRequestRetry)
 }
 
-val feedLoader = FeedLoader("https://socialmediacenter.cbruegg.com", httpClient)
+val socialMediaCenterBaseUrl = "https://socialmediacenter.cbruegg.com"
+val feedLoader = FeedLoader(socialMediaCenterBaseUrl, httpClient)

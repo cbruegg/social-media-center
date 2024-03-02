@@ -1,4 +1,3 @@
-
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -186,7 +185,7 @@ private fun FeedItemRow(feedItem: FeedItem, modifier: Modifier = Modifier) {
     ) {
         Row(Modifier.padding(8.dp)) {
             AsyncImage(
-                model = feedItem.authorImageUrl,
+                model = feedItem.authorImageUrl?.let { getPlatform().corsProxiedUrlToAbsoluteUrl(socialMediaCenterBaseUrl, it) },
                 contentDescription = feedItem.author,
                 modifier = Modifier
                     .padding(8.dp)
