@@ -1,3 +1,6 @@
+
+import androidx.compose.ui.platform.ClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import io.ktor.http.Url
 import io.ktor.http.encodeURLPath
 import kotlinx.datetime.Instant
@@ -25,10 +28,11 @@ object IOSPlatform : Platform {
         return formatter.stringFromDate(instant.toNSDate())
     }
 
-    override val uriHandler = IOSUriHandler
+    override fun createUriHandler(clipboardManager: ClipboardManager): ContextualUriHandler =
+        IOSUriHandler(clipboardManager)
 }
 
-object IOSUriHandler : ContextualUriHandler {
+private class IOSUriHandler(private val clipboardManager: ClipboardManager) : ContextualUriHandler {
     override fun openUri(uri: String) {
         // TODO Really never use Opener?
         println("Opening with standard handler: $uri")
@@ -64,6 +68,10 @@ object IOSUriHandler : ContextualUriHandler {
             }
 
             PlatformId.Mastodon -> {
+                // For Mastodon, opening posts is not always reliable. Copy text to clipboard
+                // to let user paste it into the search bar of their Mastodon app if neede
+                clipboardManager.setText(AnnotatedString(uri))
+                
                 val postId = Url(uri).pathSegments.lastOrNull { it.isNumeric() }
                 if (false && postId != null) {
                     // Disabled for now as the postId is not the postId as known by the user's

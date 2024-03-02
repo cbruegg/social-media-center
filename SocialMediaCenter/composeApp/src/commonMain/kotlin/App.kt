@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.font.FontWeight
@@ -60,8 +61,13 @@ import util.toContextualUriHandler
 @Preview
 fun App() {
     MaterialTheme {
-        val uriHandler =
-            getPlatform().uriHandler ?: LocalUriHandler.current.toContextualUriHandler()
+        val clipboardManager = LocalClipboardManager.current
+        val localUriHandler = LocalUriHandler.current
+        val uriHandler = remember(clipboardManager, localUriHandler) {
+            getPlatform().createUriHandler(clipboardManager)
+                ?: localUriHandler.toContextualUriHandler()
+        }
+
         CompositionLocalProvider(LocalContextualUriHandler provides uriHandler) {
             val scope = rememberCoroutineScope()
             var feedItems: List<FeedItem>? by remember { mutableStateOf(null) }

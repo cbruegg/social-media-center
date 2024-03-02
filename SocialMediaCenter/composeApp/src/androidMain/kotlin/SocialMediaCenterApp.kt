@@ -1,9 +1,9 @@
 import android.app.Application
 
 // Very dirty, just to make AndroidPlatform easier to initialize
-lateinit var app: App
+lateinit var app: SocialMediaCenterApp
 
-class App: Application() {
+class SocialMediaCenterApp: Application() {
     init {
         app = this
     }
