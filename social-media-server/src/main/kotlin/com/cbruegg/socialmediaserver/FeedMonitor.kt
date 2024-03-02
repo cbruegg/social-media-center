@@ -7,6 +7,7 @@ import com.cbruegg.socialmediaserver.retrieval.oldestAcceptedFeedItemInstant
 import com.cbruegg.socialmediaserver.rss.Rss
 import com.cbruegg.socialmediaserver.rss.RssChannel
 import com.cbruegg.socialmediaserver.rss.toRssItem
+import io.ktor.http.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -43,12 +44,30 @@ class FeedMonitor(
         }
     }
 
-    suspend fun getMergedFeed(): List<FeedItem> = mutex.withLock {
+    /**
+     * @param isCorsRestricted If true, image URLs will be replaced with CORS-free ones
+     * @param baseUrl This server's base URL
+     */
+    suspend fun getMergedFeed(isCorsRestricted: Boolean, baseUrl: Url): List<FeedItem> = mutex.withLock {
         feedByPlatform.values
             .flatMap { wrappedFeedItems -> wrappedFeedItems.asSequence() }
             .map { it.feedItem }
+            .map {
+                if (isCorsRestricted && it.authorImageUrl != null && shouldProxyUrlForCors(it.authorImageUrl))
+                    it.copy(authorImageUrl = it.authorImageUrl.proxiedUrl(baseUrl))
+                else
+                    it
+            }
             .sortedByDescending { it.published }
     }
+}
+
+private fun String.proxiedUrl(baseUrl: Url): String {
+    val urlToProxy = this
+    return URLBuilder(baseUrl).apply {
+        path("proxy")
+        parameters.append("url", urlToProxy)
+    }.buildString()
 }
 
 fun List<FeedItem>.toRssFeed(): Rss {
