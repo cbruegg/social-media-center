@@ -82,8 +82,8 @@ class Mastodon(val followingsOf: List<MastodonUser>) : AuthenticatedSocialPlatfo
 
         val accountInfoByMastodonAuthor: Map<String, AccountLookupResponse> = coroutineScope {
             mastodonFeeds.asSequence()
-                .filterIsInstance<Rss>()
-                .flatMap { rssFeed -> rssFeed.channel.item }
+                .filterIsInstance<RssFeed>()
+                .flatMap { rssFeed -> rssFeed.rss.channel.item }
                 .mapNotNull { post -> post.mastodonAuthor }
                 .distinct()
                 .map { author ->
