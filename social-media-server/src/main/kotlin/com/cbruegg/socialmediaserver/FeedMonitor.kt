@@ -62,11 +62,7 @@ class FeedMonitor(
 }
 
 private fun String.proxiedUrl(): String {
-    val urlToProxy = this
-    return URLBuilder().apply {
-        path("proxy")
-        parameters.append("url", urlToProxy)
-    }.buildString()
+    return "/proxy?url=${this.encodeURLQueryComponent()}"
 }
 
 fun List<FeedItem>.toRssFeed(): Rss {
