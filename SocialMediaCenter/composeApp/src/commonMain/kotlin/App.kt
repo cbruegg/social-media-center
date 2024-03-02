@@ -130,7 +130,7 @@ private fun FeedItemRow(feedItem: FeedItem, modifier: Modifier = Modifier) {
 
     Card(modifier = modifier
         .fillMaxWidth()
-        .clickable { uriHandler.openUri(feedItem.link) }
+        .clickable { uriHandler.openPostUri(feedItem.link, feedItem.platform) }
     ) {
         Row(Modifier.padding(8.dp)) {
             AsyncImage(
