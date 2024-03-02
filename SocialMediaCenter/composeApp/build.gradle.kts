@@ -56,6 +56,8 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.kotlinx.coroutines.android)
+            implementation(libs.androidx.lifecycle.runtime.ktx)
+            implementation(libs.androidx.appcompat)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -64,6 +66,7 @@ kotlin {
             implementation(compose.ui)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
+            implementation(libs.compose.multiplatform.lifecycle.tracker)
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)

@@ -12,6 +12,7 @@ androidx-material = "1.11.0"
 androidx-test-junit = "1.1.5"
 compose = "1.6.2"
 compose-plugin = "1.6.0"
+composeMultiplatformLifecycleTracker = "1.0.0"
 junit = "4.13.2"
 kotlin = "1.9.22"
 ktor = "2.3.8"
@@ -20,8 +21,10 @@ kotlinx-serialization-json = "1.6.3"
 kotlinx-datetime = "0.5.0"
 coil = "3.0.0-alpha04"
 ksoup = "0.3.1"
+lifecycle = "2.7.0"
 
 [libraries]
+compose-multiplatform-lifecycle-tracker = { module = "io.github.kevinnzou:compose-multiplatform-lifecycle-tracker", version.ref = "composeMultiplatformLifecycleTracker" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -31,6 +34,7 @@ androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-co
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "androidx-appcompat" }
 androidx-material = { group = "com.google.android.material", name = "material", version.ref = "androidx-material" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "androidx-constraintlayout" }
+androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activityCompose" }
 compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "compose" }
 compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "compose" }

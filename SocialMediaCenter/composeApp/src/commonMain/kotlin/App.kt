@@ -1,3 +1,4 @@
+
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -24,6 +25,7 @@ import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,18 +44,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.mohamedrejeb.ksoup.entities.KsoupEntities
+import com.multiplatform.lifecycle.LifecycleEvent
+import com.multiplatform.lifecycle.LifecycleObserver
+import com.multiplatform.lifecycle.LocalLifecycleTracker
 import components.LinkifiedText
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import persistence.rememberForeverLazyListState
 import util.LocalContextualUriHandler
 import util.toContextualUriHandler
+import kotlin.time.Duration.Companion.minutes
 
 // TODO: Configurable server
 // TODO: Remember timeline state across devices
 // TODO: (Configurable?) maximum post height (Mastodon posts can be very long)
 // TODO: Move logic to some ViewModel
-// TODO: Auto-refresh (every minute + on app relaunch)
 // TODO: Support mentions (maybe not for all platforms)
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -72,21 +79,42 @@ fun App() {
             val scope = rememberCoroutineScope()
             var feedItems: List<FeedItem>? by remember { mutableStateOf(null) }
             var lastLoadFailure: Throwable? by remember { mutableStateOf(null) }
-            var isLoading by remember { mutableStateOf(true) }
+            var isLoading by remember { mutableStateOf(false) }
+            var shouldRefreshPeriodically by remember { mutableStateOf(true) }
             val refresh = suspend {
-                isLoading = true
-                val result = feedLoader.fetch()
-                feedItems = result.getOrNull() ?: feedItems
-                lastLoadFailure = result.exceptionOrNull()
-                isLoading = false
+                if (!isLoading) {
+                    println("Refreshing...")
+                    isLoading = true
+                    val result = feedLoader.fetch()
+                    feedItems = result.getOrNull() ?: feedItems
+                    lastLoadFailure = result.exceptionOrNull()
+                    isLoading = false
+                }
             }
             val pullRefreshState =
                 rememberPullRefreshState(isLoading, { scope.launch { refresh() } })
             var showLastLoadFailure by remember { mutableStateOf(false) }
 
+            LaunchedEffect(Unit) { refresh() } // initial load
             LaunchedEffect(Unit) {
-                launch { refresh() }
+                launch {
+                    while (isActive) {
+                        delay(1.minutes)
+                        if (shouldRefreshPeriodically) {
+                            refresh()
+                        } else {
+                            println("Skipping refresh")
+                        }
+                    }
+                }
             }
+            LifecycleHandler(
+                onPause = { shouldRefreshPeriodically = false },
+                onResume = {
+                    shouldRefreshPeriodically = true
+                    scope.launch { refresh() }
+                }
+            )
 
             if (showLastLoadFailure) {
                 AlertDialog(
@@ -128,6 +156,29 @@ fun App() {
                     modifier = Modifier.align(Alignment.TopCenter)
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun LifecycleHandler(
+    onPause: () -> Unit,
+    onResume: () -> Unit
+) {
+    val lifecycleTracker = LocalLifecycleTracker.current
+    DisposableEffect(Unit) {
+        val listener = object : LifecycleObserver {
+            override fun onEvent(event: LifecycleEvent) {
+                when (event) {
+                    LifecycleEvent.OnPauseEvent -> onPause()
+                    LifecycleEvent.OnResumeEvent -> onResume()
+                    else -> {}
+                }
+            }
+        }
+        lifecycleTracker.addObserver(listener)
+        onDispose {
+            lifecycleTracker.removeObserver(listener)
         }
     }
 }
