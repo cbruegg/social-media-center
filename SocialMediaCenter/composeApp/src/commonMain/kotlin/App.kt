@@ -1,3 +1,4 @@
+
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -12,11 +13,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.Card
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.LocalTextStyle
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
@@ -42,13 +41,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
-import com.mohamedrejeb.ksoup.entities.KsoupEntities
+import components.FeedItemContentText
 import components.LifecycleHandler
-import components.LinkifiedText
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.kodein.emoji.compose.LocalEmojiDownloader
+import org.kodein.emoji.compose.WithPlatformEmoji
 import persistence.rememberForeverLazyListState
 import util.LocalContextualUriHandler
 import util.toContextualUriHandler
@@ -72,7 +72,10 @@ fun App() {
                 ?: localUriHandler.toContextualUriHandler()
         }
 
-        CompositionLocalProvider(LocalContextualUriHandler provides uriHandler) {
+        CompositionLocalProvider(
+            LocalContextualUriHandler provides uriHandler,
+            LocalEmojiDownloader provides ::downloadEmoji
+        ) {
             val scope = rememberCoroutineScope()
             var feedItems: List<FeedItem>? by remember { mutableStateOf(null) }
             var lastLoadFailure: Throwable? by remember { mutableStateOf(null) }
@@ -172,11 +175,9 @@ private fun rememberForeverFeedItemsListState(feedItems: List<FeedItem>): LazyLi
     }
 }
 
-@OptIn(ExperimentalTextApi::class)
 @Composable
 private fun FeedItemRow(feedItem: FeedItem, modifier: Modifier = Modifier) {
     val uriHandler = LocalContextualUriHandler.current
-    val linkColor = MaterialTheme.colors.primary
 
     val formattedDate = remember(feedItem) { getPlatform().formatFeedItemDate(feedItem.published) }
 
@@ -200,31 +201,11 @@ private fun FeedItemRow(feedItem: FeedItem, modifier: Modifier = Modifier) {
                     .border(2.dp, Color.Gray, CircleShape)
             )
             Column {
-                Text(feedItem.author, fontWeight = FontWeight.Bold)
-                if (feedItem.platform.hasHtmlText) {
-                    val annotatedString = remember(feedItem, linkColor) {
-                        feedItem.text.parseHtml(linkColor, maxLinkLength = 100)
-                    }
-                    ClickableText(annotatedString, style = LocalTextStyle.current) { offset ->
-                        val url = annotatedString.getUrlAnnotations(start = offset, end = offset)
-                            .firstOrNull()?.item?.url
-                        println(feedItem)
-                        if (!url.isNullOrEmpty())
-                            uriHandler.openUri(url)
-                        else
-                            uriHandler.openPostUri(feedItem.link, feedItem.platform)
-                    }
-                } else {
-                    val decoded = remember(feedItem) { KsoupEntities.decodeHtml(feedItem.text) }
-                    LinkifiedText(
-                        text = decoded,
-                        defaultClickHandler = {
-                            uriHandler.openPostUri(
-                                feedItem.link,
-                                feedItem.platform
-                            )
-                        })
+                // Using WithPlatformEmoji for emoji support on WASM
+                WithPlatformEmoji(feedItem.author) { text, content ->
+                    Text(text, inlineContent = content, fontWeight = FontWeight.Bold)
                 }
+                FeedItemContentText(feedItem)
                 Text(
                     text = formattedDate,
                     color = Color.Gray,
@@ -234,5 +215,3 @@ private fun FeedItemRow(feedItem: FeedItem, modifier: Modifier = Modifier) {
         }
     }
 }
-
-private val PlatformId.hasHtmlText get() = this == PlatformId.Mastodon
