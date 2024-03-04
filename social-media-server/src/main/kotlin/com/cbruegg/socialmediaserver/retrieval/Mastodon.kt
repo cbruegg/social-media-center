@@ -89,7 +89,8 @@ class Mastodon(val followingsOf: List<MastodonUser>) : AuthenticatedSocialPlatfo
                 .map { author ->
                     async {
                         runCatching {
-                            // We could also ask the server of the user we're querying to distribute the load
+                            // We could also ask the server of the user we're querying to distribute the load.
+                            // Somehow, neither works with @marcan@social.treehouse.systems, it just says "record not found"
                             val account = http.get("${user.server}/api/v1/accounts/lookup?acct=$author")
                                 .body<AccountLookupResponse>()
                             author to account
@@ -114,7 +115,7 @@ class Mastodon(val followingsOf: List<MastodonUser>) : AuthenticatedSocialPlatfo
                         val accountInfo = mastodonAuthor?.let { accountInfoByMastodonAuthor[it] }
                         rssItem.toFeedItem(
                             author = accountInfo?.acct?.let { "@$it" },
-                            authorImageUrl = accountInfo?.avatar
+                            authorImageUrl = accountInfo?.avatar ?: mastodonFeed.rss.channel.image?.url
                         )
                     }
                 }

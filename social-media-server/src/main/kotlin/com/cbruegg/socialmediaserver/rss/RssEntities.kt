@@ -25,8 +25,13 @@ data class RssChannel(
     @XmlElement val title: String,
     @XmlElement val description: String,
     @XmlElement val link: String,
-    @XmlElement val item: List<RssItem>
+    @XmlElement val item: List<RssItem>,
+    @XmlElement val image: RssChannelImage? = null
 )
+
+@Serializable
+@XmlSerialName("image")
+data class RssChannelImage(@XmlElement val url: String)
 
 @Serializable
 @XmlSerialName("item")
