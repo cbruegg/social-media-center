@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -126,8 +127,8 @@ fun App() {
             }
 
             Box(modifier = Modifier.fillMaxSize().padding(8.dp).pullRefresh(pullRefreshState)) {
-                Column {
-                    lastLoadFailure?.let { loadFailure ->
+                Column(modifier = Modifier.widthIn(max = 1000.dp).align(Alignment.TopCenter)) {
+                    if (lastLoadFailure != null) {
                         Card {
                             Row {
                                 Text("Loading error!")
@@ -185,7 +186,12 @@ private fun FeedItemRow(feedItem: FeedItem, modifier: Modifier = Modifier) {
     ) {
         Row(Modifier.padding(8.dp)) {
             AsyncImage(
-                model = feedItem.authorImageUrl?.let { getPlatform().corsProxiedUrlToAbsoluteUrl(socialMediaCenterBaseUrl, it) },
+                model = feedItem.authorImageUrl?.let {
+                    getPlatform().corsProxiedUrlToAbsoluteUrl(
+                        socialMediaCenterBaseUrl,
+                        it
+                    )
+                },
                 contentDescription = feedItem.author,
                 modifier = Modifier
                     .padding(8.dp)

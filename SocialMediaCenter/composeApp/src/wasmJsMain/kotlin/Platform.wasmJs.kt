@@ -3,7 +3,7 @@ import io.ktor.http.URLBuilder
 import io.ktor.http.appendEncodedPathSegments
 import kotlinx.datetime.Instant
 
-// TODO Max-width for feed, center i?
+// TODO Emoji support
 
 class WasmPlatform : Platform {
     override val isCorsRestricted: Boolean = true
