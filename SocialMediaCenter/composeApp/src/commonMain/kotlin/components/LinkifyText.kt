@@ -1,21 +1,21 @@
 package components
 
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.material.Text
+import androidx.compose.foundation.text.ClickableText
+import androidx.compose.material.LocalTextStyle
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.UrlAnnotation
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import util.LocalContextualUriHandler
 
 // Inspired by https://stackoverflow.com/a/66235329/1502352
 
+@OptIn(ExperimentalTextApi::class)
 @Composable
 fun LinkifiedText(
     text: String,
@@ -23,9 +23,6 @@ fun LinkifiedText(
     modifier: Modifier = Modifier
 ) {
     val uriHandler = LocalContextualUriHandler.current
-    val layoutResult = remember {
-        mutableStateOf<TextLayoutResult?>(null)
-    }
     val annotatedString = remember(text) {
         buildAnnotatedString {
             append(text)
@@ -38,37 +35,23 @@ fun LinkifiedText(
                     start = it.start,
                     end = it.end
                 )
-                addStringAnnotation(
-                    tag = "URL",
-                    annotation = it.url,
-                    start = it.start,
-                    end = it.end
-                )
+                addUrlAnnotation(UrlAnnotation(it.url), it.start, it.end)
             }
         }
     }
-    // TODO: Theoretically, this should also just be ClickableText instead of Text with pointerInput modifier. or not? maybe this can support ripple...
-    Text(
+
+    ClickableText(
+        modifier = modifier,
         text = annotatedString,
-        onTextLayout = { layoutResult.value = it },
-        modifier = modifier
-            .pointerInput(Unit) {
-                detectTapGestures { offsetPosition ->
-                    layoutResult.value?.let {
-                        val position = it.getOffsetForPosition(offsetPosition)
-                        val annotation =
-                            annotatedString.getStringAnnotations(position, position).firstOrNull()
-                        if (annotation != null) {
-                            if (annotation.tag == "URL") {
-                                uriHandler.openUri(annotation.item)
-                            }
-                        } else {
-                            defaultClickHandler()
-                        }
-                    }
-                }
-            }
-    )
+        style = LocalTextStyle.current
+    ) { offset ->
+        val url = annotatedString.getUrlAnnotations(start = offset, end = offset)
+            .firstOrNull()?.item?.url
+        if (!url.isNullOrEmpty())
+            uriHandler.openUri(url)
+        else
+            defaultClickHandler()
+    }
 }
 
 private val urlPattern = Regex(
