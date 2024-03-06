@@ -16,7 +16,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.Placeholder
@@ -25,20 +24,19 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.UrlAnnotation
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.em
 import com.mohamedrejeb.ksoup.entities.KsoupEntities
 import kotlinx.coroutines.launch
+import org.kodein.emoji.Emoji
 import org.kodein.emoji.EmojiFinder
 import org.kodein.emoji.FoundEmoji
 import org.kodein.emoji.codePointCharLength
 import org.kodein.emoji.compose.EmojiService
 import org.kodein.emoji.compose.EmojiUrl
 import org.kodein.emoji.compose.LocalEmojiDownloader
-import org.kodein.emoji.compose.PlatformEmojiPlaceholder
 import org.kodein.emoji.compose.SVGImage
-import org.kodein.emoji.compose.platformSizeRatio
+import org.kodein.emoji.compose.appendNotoPlaceholder
 import org.kodein.emoji.isCodePointInOneChar
 import parseHtml
 import util.LocalContextualUriHandler
@@ -93,32 +91,21 @@ fun FeedItemContentText(feedItem: FeedItem) {
 private fun ClickableEmojiText(
     modifier: Modifier = Modifier,
     text: AnnotatedString,
-    download: suspend (EmojiUrl) -> ByteArray? = LocalEmojiDownloader.current,
+    download: suspend (EmojiUrl) -> ByteArray = LocalEmojiDownloader.current,
     onClick: (url: String?) -> Unit
 ) {
     val service = EmojiService.get() ?: return
-    val textMeasurer = rememberTextMeasurer()
-    val density = LocalDensity.current
 
     val all = remember(text) {
         service.finder.findEmoji(text)
-            .map { found ->
-                val sizeRatio = platformSizeRatio(found.emoji, textMeasurer, density)
-                found to mutableStateOf(InlineTextContent(
-                    placeholder = Placeholder(sizeRatio.width.em, sizeRatio.height.em, PlaceholderVerticalAlign.Center),
-                    children = { PlatformEmojiPlaceholder(found.emoji) }
-                ))
-            }
+            .map { found -> found to mutableStateOf<InlineTextContent?>(null) }
             .toList()
     }
 
     LaunchedEffect(all) {
         all.forEach { (found, inlineTextContent) ->
             launch {
-                val newInlineContent = createInlineTextContent(found, download)
-                if (newInlineContent != null) {
-                    inlineTextContent.value = newInlineContent
-                }
+                inlineTextContent.value = createInlineTextContent(found.emoji, download)
             }
         }
     }
@@ -128,12 +115,16 @@ private fun ClickableEmojiText(
         var start = 0
         all.forEach { (found, inlineTextContent) ->
             append(text.subSequence(start, found.start))
-            val inlineContentID = "emoji:${found.emoji}"
-            inlineContent[inlineContentID] = inlineTextContent.value
-            appendInlineContent(inlineContentID)
+            val itc = inlineTextContent.value
+            if (itc != null) {
+                val inlineContentID = "emoji:${found.emoji}"
+                inlineContent[inlineContentID] = itc
+                appendInlineContent(inlineContentID)
+            } else {
+                appendNotoPlaceholder(found.emoji, inlineContent)
+            }
             start = found.end
         }
-        // TODO Build substring for AnnotatedString
         append(text.subSequence(start, text.length))
     }
 
@@ -188,15 +179,20 @@ private fun codePointAt(string: AnnotatedString, index: Int): Int {
 }
 
 @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE" )
-private suspend fun createInlineTextContent(found: FoundEmoji, download: suspend (EmojiUrl) -> ByteArray?): InlineTextContent? {
-    val bytes = download(EmojiUrl.from(found.emoji, EmojiUrl.Type.SVG)) ?: return null
-    val svg = SVGImage.create(bytes)
-    return InlineTextContent(
-        placeholder = Placeholder(1.em, 1.em / svg.sizeRatio(), PlaceholderVerticalAlign.Center),
-        children = {
-            SVGImage(svg, "${found.emoji.details.description} emoji", Modifier.fillMaxSize())
-        }
-    )
+private suspend fun createInlineTextContent(emoji: Emoji, download: suspend (EmojiUrl) -> ByteArray): InlineTextContent? {
+    try {
+        val bytes = download(EmojiUrl.from(emoji, EmojiUrl.Type.SVG))
+        val svg = SVGImage.create(bytes)
+        return InlineTextContent(
+            placeholder = Placeholder(1.em, 1.em / svg.sizeRatio(), PlaceholderVerticalAlign.Center),
+            children = {
+                SVGImage(svg, "${emoji.details.description} emoji", Modifier.fillMaxSize())
+            }
+        )
+    } catch (t: Throwable) {
+        println("${t::class.simpleName}: ${t.message}")
+        return null
+    }
 }
 
 @OptIn(ExperimentalTextApi::class)
