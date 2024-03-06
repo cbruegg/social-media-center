@@ -44,7 +44,6 @@ import util.LocalContextualUriHandler
 // Inspired by https://stackoverflow.com/a/66235329/1502352
 
 // TODO Upstream some of this
-// TODO Flag emojis become wayyy too large https://twitter.com/melissakchan/status/1764719267994362031 https://twitter.com/bueti/status/1764747214407008578
 
 @OptIn(ExperimentalTextApi::class)
 @Composable

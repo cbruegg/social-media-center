@@ -16,4 +16,22 @@ private val httpClient = HttpClient {
 val socialMediaCenterBaseUrl = "https://socialmediacenter.cbruegg.com"
 val feedLoader = FeedLoader(socialMediaCenterBaseUrl, httpClient)
 
-suspend fun downloadEmoji(emojiUrl: EmojiUrl): ByteArray = httpClient.get(emojiUrl.url).body()
+suspend fun downloadEmoji(emojiUrl: EmojiUrl): ByteArray {
+    val bytes = httpClient.get(emojiUrl.url).body<ByteArray>()
+    // Some emoji SVGs have a width and height set on the root element.
+    // We need to remove them as at least on web, they result in oversized flag emojis
+    return try {
+        val xmlStr = bytes.decodeToString()
+        val svgRootStart = xmlStr.indexOf("<svg")
+        val svgRootEndInclusive = xmlStr.indexOf('>', startIndex = svgRootStart)
+        val svgRootStartTag = xmlStr.substring(svgRootStart, svgRootEndInclusive + 1)
+        val fixedSvgRootStartTag = svgRootStartTag.replace(
+            Regex("""(width|height)="\w+""""),
+            ""
+        )
+        val fixedXmlStr = xmlStr.replaceRange(svgRootStart, svgRootEndInclusive + 1, fixedSvgRootStartTag)
+        fixedXmlStr.encodeToByteArray()
+    } catch (e: Exception) {
+        bytes
+    }
+}
