@@ -36,7 +36,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -54,6 +53,7 @@ import util.LocalContextualUriHandler
 import util.toContextualUriHandler
 import kotlin.time.Duration.Companion.minutes
 
+// TODO: Build this in GitHub CI and serve from server
 // TODO: Configurable server
 // TODO: Remember timeline state across devices
 // TODO: (Configurable?) maximum post height (Mastodon posts can be very long)
