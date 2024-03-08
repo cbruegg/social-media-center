@@ -18,6 +18,10 @@ val feedLoader = FeedLoader(socialMediaCenterBaseUrl, httpClient)
 
 suspend fun downloadEmoji(emojiUrl: EmojiUrl): ByteArray {
     val bytes = httpClient.get(emojiUrl.url).body<ByteArray>()
+    if (getPlatform().nativelySupportsEmojiRendering) {
+        return bytes
+    }
+
     // Some emoji SVGs have a width and height set on the root element.
     // We need to remove them as at least on web, they result in oversized flag emojis
     return try {

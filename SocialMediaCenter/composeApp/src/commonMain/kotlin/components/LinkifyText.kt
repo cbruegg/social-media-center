@@ -5,6 +5,7 @@ import FeedItem
 import PlatformId
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material.MaterialTheme
@@ -27,6 +28,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.em
 import com.mohamedrejeb.ksoup.entities.KsoupEntities
+import getPlatform
 import kotlinx.coroutines.launch
 import org.kodein.emoji.Emoji
 import org.kodein.emoji.EmojiFinder
@@ -86,6 +88,7 @@ fun FeedItemContentText(feedItem: FeedItem) {
 }
 
 
+@OptIn(ExperimentalTextApi::class)
 @Composable
 private fun ClickableEmojiText(
     modifier: Modifier = Modifier,
@@ -93,6 +96,19 @@ private fun ClickableEmojiText(
     download: suspend (EmojiUrl) -> ByteArray = LocalEmojiDownloader.current,
     onClick: (url: String?) -> Unit
 ) {
+    if (getPlatform().nativelySupportsEmojiRendering) {
+        // No need for our fallback solution
+        ClickableText(
+            modifier = modifier,
+            text = text,
+            onClick = { position ->
+                val annotation = text.getUrlAnnotations(position, position).firstOrNull()
+                onClick(annotation?.item?.url)
+            }
+        )
+        return
+    }
+
     val service = EmojiService.get() ?: return
 
     val all = remember(text) {
