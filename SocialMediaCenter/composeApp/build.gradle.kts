@@ -83,6 +83,7 @@ kotlin {
             implementation(libs.coil.network)
             implementation(libs.ksoup.html)
             implementation(libs.ksoup.entities)
+            implementation(libs.emoji.compose)
         }
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)

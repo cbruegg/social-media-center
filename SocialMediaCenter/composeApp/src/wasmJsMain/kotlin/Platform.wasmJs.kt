@@ -7,6 +7,7 @@ import kotlinx.datetime.Instant
 
 class WasmPlatform : Platform {
     override val isCorsRestricted: Boolean = true
+    override val nativelySupportsEmojiRendering: Boolean = false
     override fun formatFeedItemDate(instant: Instant): String =
         jsFormatDate(instant.toEpochMilliseconds().toString())
 

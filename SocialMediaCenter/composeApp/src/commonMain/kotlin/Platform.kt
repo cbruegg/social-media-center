@@ -9,6 +9,7 @@ interface Platform {
 
     val persistence: Persistence? get() = null
     val isCorsRestricted: Boolean get() = false
+    val nativelySupportsEmojiRendering: Boolean get() = true
     fun formatFeedItemDate(instant: Instant): String
     fun corsProxiedUrlToAbsoluteUrl(socialMediaCenterBaseUrl: String, authorImageUrl: String): String {
         check(!isCorsRestricted) { "This method must be implemented if CORS is restricted" }
