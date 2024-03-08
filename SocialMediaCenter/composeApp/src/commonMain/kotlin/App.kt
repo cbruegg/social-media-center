@@ -53,7 +53,6 @@ import util.LocalContextualUriHandler
 import util.toContextualUriHandler
 import kotlin.time.Duration.Companion.minutes
 
-// TODO: Build this in GitHub CI and serve from server
 // TODO: Configurable server
 // TODO: Remember timeline state across devices
 // TODO: (Configurable?) maximum post height (Mastodon posts can be very long)

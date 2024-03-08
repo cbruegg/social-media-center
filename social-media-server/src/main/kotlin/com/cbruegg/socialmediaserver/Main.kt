@@ -10,6 +10,7 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
+import io.ktor.server.http.content.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
@@ -21,6 +22,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import nl.adaptivity.xmlutil.serialization.XML
+import java.io.File
 import kotlin.io.path.Path
 import kotlin.io.path.readText
 
@@ -30,6 +32,9 @@ suspend fun main(args: Array<String>) = coroutineScope {
     val twitterScriptLocation = args.getOrNull(0) ?: error("Missing twitterScriptLocation")
     val dataLocation = args.getOrNull(1) ?: error("Missing dataLocation")
     val port = args.getOrNull(2)?.toIntOrNull() ?: 8000
+    val socialMediaCenterWebLocation = args.getOrNull(3) ?: error("Missing socialMediaCenterWebLocation")
+
+    println("twitterScriptLocation=$twitterScriptLocation, dataLocation=$dataLocation, port=$port, socialMediaCenterWebLocation=$socialMediaCenterWebLocation")
 
     val feedMonitor = createFeedMonitor(twitterScriptLocation, dataLocation)
     feedMonitor.start(scope = this)
@@ -71,6 +76,7 @@ suspend fun main(args: Array<String>) = coroutineScope {
                     upstreamResponseChannel.copyAndClose(this)
                 }
             }
+            staticFiles("/", File(socialMediaCenterWebLocation))
         }
     }.start(wait = true)
 
