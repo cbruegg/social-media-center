@@ -67,7 +67,7 @@ fun App() {
         val clipboardManager = LocalClipboardManager.current
         val localUriHandler = LocalUriHandler.current
         val uriHandler = remember(clipboardManager, localUriHandler) {
-            getPlatform().createUriHandler(clipboardManager)
+            getPlatform().createUriHandler(clipboardManager, localUriHandler, socialMediaCenterBaseUrl)
                 ?: localUriHandler.toContextualUriHandler()
         }
 

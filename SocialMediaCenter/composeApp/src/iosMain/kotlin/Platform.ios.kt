@@ -1,5 +1,6 @@
 
 import androidx.compose.ui.platform.ClipboardManager
+import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.text.AnnotatedString
 import io.ktor.http.Url
 import io.ktor.http.encodeURLPath
@@ -28,7 +29,11 @@ object IOSPlatform : Platform {
         return formatter.stringFromDate(instant.toNSDate())
     }
 
-    override fun createUriHandler(clipboardManager: ClipboardManager): ContextualUriHandler =
+    override fun createUriHandler(
+        clipboardManager: ClipboardManager,
+        defaultUriHandler: UriHandler,
+        socialMediaCenterBaseUrl: String
+    ): ContextualUriHandler =
         IOSUriHandler(clipboardManager)
 }
 

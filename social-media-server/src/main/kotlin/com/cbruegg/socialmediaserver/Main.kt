@@ -36,7 +36,8 @@ suspend fun main(args: Array<String>) = coroutineScope {
 
     println("twitterScriptLocation=$twitterScriptLocation, dataLocation=$dataLocation, port=$port, socialMediaCenterWebLocation=$socialMediaCenterWebLocation")
 
-    val feedMonitor = createFeedMonitor(twitterScriptLocation, dataLocation)
+    val sources = loadSources(dataLocation)
+    val feedMonitor = createFeedMonitor(twitterScriptLocation, dataLocation, sources)
     feedMonitor.start(scope = this)
 
     val httpClient = HttpClient(CIO)
@@ -76,6 +77,25 @@ suspend fun main(args: Array<String>) = coroutineScope {
                     upstreamResponseChannel.copyAndClose(this)
                 }
             }
+            get("/mastodon-status") {
+                val statusUrlOnAuthorServer: String? = context.request.queryParameters["statusUrl"]
+                if (statusUrlOnAuthorServer == null) {
+                    call.respond(HttpStatusCode.BadRequest)
+                    return@get
+                }
+
+                // just pick the first user server:
+                val mastodonServerOfUser = sources.mastodonFollowings.map { it.server }.firstOrNull()
+                if (mastodonServerOfUser == null) {
+                    // No Mastodon configured, just redirect to author server
+                    call.respondRedirect(statusUrlOnAuthorServer)
+                    return@get
+                }
+
+                val statusOnUserServerUrl = "$mastodonServerOfUser/authorize_interaction?uri=$statusUrlOnAuthorServer"
+                call.respondRedirect(statusOnUserServerUrl)
+
+            }
             staticFiles("/", File(socialMediaCenterWebLocation))
         }
     }.start(wait = true)
@@ -83,16 +103,18 @@ suspend fun main(args: Array<String>) = coroutineScope {
     return@coroutineScope
 }
 
-private suspend fun createFeedMonitor(twitterScriptLocation: String, dataLocation: String): FeedMonitor {
-    val sources = withContext(Dispatchers.IO) {
-        Json.decodeFromString<Sources>(Path(dataLocation, "sources.json").readText())
-    }
-
+private suspend fun createFeedMonitor(twitterScriptLocation: String, dataLocation: String, sources: Sources): FeedMonitor {
     val platforms = listOf(
         Twitter(sources.twitterLists, twitterScriptLocation, dataLocation),
         Mastodon(sources.mastodonFollowings)
     )
     return FeedMonitor(platforms)
+}
+
+private suspend fun loadSources(dataLocation: String): Sources {
+    return withContext(Dispatchers.IO) {
+        Json.decodeFromString<Sources>(Path(dataLocation, "sources.json").readText())
+    }
 }
 
 fun shouldProxyUrlForCors(url: String): Boolean {

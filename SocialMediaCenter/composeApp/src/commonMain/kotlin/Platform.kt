@@ -1,10 +1,15 @@
 import androidx.compose.ui.platform.ClipboardManager
+import androidx.compose.ui.platform.UriHandler
 import kotlinx.datetime.Instant
 import persistence.Persistence
 import util.ContextualUriHandler
 
 interface Platform {
-    fun createUriHandler(clipboardManager: ClipboardManager): ContextualUriHandler? =
+    fun createUriHandler(
+        clipboardManager: ClipboardManager,
+        defaultUriHandler: UriHandler,
+        socialMediaCenterBaseUrl: String
+    ): ContextualUriHandler? =
         null // TODO Implement for Android
 
     val persistence: Persistence? get() = null
