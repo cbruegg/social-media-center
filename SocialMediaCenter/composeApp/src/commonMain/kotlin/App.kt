@@ -4,11 +4,16 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -66,6 +71,9 @@ import kotlin.time.Duration.Companion.minutes
 @Composable
 @Preview
 fun App() {
+    // Ignore bottom window insets in order to draw below the system bar
+    val windowInsetSides = WindowInsetsSides.Start + WindowInsetsSides.End + WindowInsetsSides.Top
+
     MaterialTheme(
         colors = if (isSystemInDarkTheme()) darkColors() else lightColors()
     ) {
@@ -137,7 +145,11 @@ fun App() {
             }
 
             Surface {
-                Box(modifier = Modifier.fillMaxSize().pullRefresh(pullRefreshState)) {
+                Box(
+                    modifier = Modifier.fillMaxSize()
+                        .pullRefresh(pullRefreshState)
+                        .windowInsetsPadding(WindowInsets.safeDrawing.only(windowInsetSides))
+                ) {
                     Column(modifier = Modifier.widthIn(max = 1000.dp).align(Alignment.TopCenter)) {
                         if (lastLoadFailure != null) {
                             Card(modifier = Modifier.padding(8.dp)) {
