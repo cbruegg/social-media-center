@@ -3,7 +3,6 @@ package components
 import FeedItem
 import PlatformId
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
@@ -21,7 +20,6 @@ import androidx.compose.ui.text.UrlAnnotation
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import com.mohamedrejeb.ksoup.entities.KsoupEntities
-import getPlatform
 import org.kodein.emoji.compose.WithPlatformEmoji
 import parseHtml
 import util.LocalContextualUriHandler
@@ -40,7 +38,6 @@ fun FeedItemContentText(feedItem: FeedItem) {
         remember(feedItem, linkColor) {
             feedItem.text.parseHtml(linkColor, maxLinkLength = 100)
         }
-
     } else {
         val decoded = remember(feedItem.text) { KsoupEntities.decodeHtml(feedItem.text) }
         remember(decoded) {
@@ -71,26 +68,12 @@ fun FeedItemContentText(feedItem: FeedItem) {
 }
 
 
-@OptIn(ExperimentalTextApi::class)
 @Composable
 private fun ClickableEmojiText(
     modifier: Modifier = Modifier,
     text: AnnotatedString,
     onClick: (url: String?) -> Unit
 ) {
-    if (getPlatform().nativelySupportsEmojiRendering) {
-        // No need for our fallback solution
-        ClickableText(
-            modifier = modifier,
-            text = text,
-            onClick = { position ->
-                val annotation = text.getUrlAnnotations(position, position).firstOrNull()
-                onClick(annotation?.item?.url)
-            }
-        )
-        return
-    }
-
     WithPlatformEmoji(text) { annotatedString, inlineContent ->
         // Can't use ClickableText as it doesn't support inlineContent
         ClickableTextWithInlineContent(
