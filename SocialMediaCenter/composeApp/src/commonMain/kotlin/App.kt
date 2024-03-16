@@ -1,6 +1,6 @@
-
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,8 +17,11 @@ import androidx.compose.material.AlertDialog
 import androidx.compose.material.Card
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
+import androidx.compose.material.darkColors
+import androidx.compose.material.lightColors
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
@@ -63,12 +66,17 @@ import kotlin.time.Duration.Companion.minutes
 @Composable
 @Preview
 fun App() {
-    MaterialTheme {
+    MaterialTheme(
+        colors = if (isSystemInDarkTheme()) darkColors() else lightColors()
+    ) {
         val clipboardManager = LocalClipboardManager.current
         val localUriHandler = LocalUriHandler.current
         val uriHandler = remember(clipboardManager, localUriHandler) {
-            getPlatform().createUriHandler(clipboardManager, localUriHandler, socialMediaCenterBaseUrl)
-                ?: localUriHandler.toContextualUriHandler()
+            getPlatform().createUriHandler(
+                clipboardManager,
+                localUriHandler,
+                socialMediaCenterBaseUrl
+            ) ?: localUriHandler.toContextualUriHandler()
         }
 
         CompositionLocalProvider(
@@ -128,32 +136,34 @@ fun App() {
                 )
             }
 
-            Box(modifier = Modifier.fillMaxSize().padding(8.dp).pullRefresh(pullRefreshState)) {
-                Column(modifier = Modifier.widthIn(max = 1000.dp).align(Alignment.TopCenter)) {
-                    if (lastLoadFailure != null) {
-                        Card {
-                            Row {
-                                Text("Loading error!")
-                                TextButton({ showLastLoadFailure = true }) { Text("Details") }
-                                TextButton({ lastLoadFailure = null }) { Text("Dismiss") }
+            Surface {
+                Box(modifier = Modifier.fillMaxSize().padding(8.dp).pullRefresh(pullRefreshState)) {
+                    Column(modifier = Modifier.widthIn(max = 1000.dp).align(Alignment.TopCenter)) {
+                        if (lastLoadFailure != null) {
+                            Card {
+                                Row {
+                                    Text("Loading error!")
+                                    TextButton({ showLastLoadFailure = true }) { Text("Details") }
+                                    TextButton({ lastLoadFailure = null }) { Text("Dismiss") }
+                                }
+                            }
+                        }
+                        feedItems?.let { feedItems ->
+                            LazyColumn(state = rememberForeverFeedItemsListState(feedItems)) {
+                                items(
+                                    feedItems.size,
+                                    key = { feedItems[it].id },
+                                    itemContent = { FeedItemRow(feedItems[it]) }
+                                )
                             }
                         }
                     }
-                    feedItems?.let { feedItems ->
-                        LazyColumn(state = rememberForeverFeedItemsListState(feedItems)) {
-                            items(
-                                feedItems.size,
-                                key = { feedItems[it].id },
-                                itemContent = { FeedItemRow(feedItems[it]) }
-                            )
-                        }
-                    }
+                    PullRefreshIndicator(
+                        refreshing = isLoading,
+                        state = pullRefreshState,
+                        modifier = Modifier.align(Alignment.TopCenter)
+                    )
                 }
-                PullRefreshIndicator(
-                    refreshing = isLoading,
-                    state = pullRefreshState,
-                    modifier = Modifier.align(Alignment.TopCenter)
-                )
             }
         }
     }
