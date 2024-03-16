@@ -137,10 +137,10 @@ fun App() {
             }
 
             Surface {
-                Box(modifier = Modifier.fillMaxSize().padding(8.dp).pullRefresh(pullRefreshState)) {
+                Box(modifier = Modifier.fillMaxSize().pullRefresh(pullRefreshState)) {
                     Column(modifier = Modifier.widthIn(max = 1000.dp).align(Alignment.TopCenter)) {
                         if (lastLoadFailure != null) {
-                            Card {
+                            Card(modifier = Modifier.padding(8.dp)) {
                                 Row {
                                     Text("Loading error!")
                                     TextButton({ showLastLoadFailure = true }) { Text("Details") }
@@ -153,7 +153,7 @@ fun App() {
                                 items(
                                     feedItems.size,
                                     key = { feedItems[it].id },
-                                    itemContent = { FeedItemRow(feedItems[it]) }
+                                    itemContent = { FeedItemRow(feedItems[it], it) }
                                 )
                             }
                         }
@@ -185,7 +185,7 @@ private fun rememberForeverFeedItemsListState(feedItems: List<FeedItem>): LazyLi
 }
 
 @Composable
-private fun FeedItemRow(feedItem: FeedItem, modifier: Modifier = Modifier) {
+private fun FeedItemRow(feedItem: FeedItem, index: Int, modifier: Modifier = Modifier) {
     val uriHandler = LocalContextualUriHandler.current
 
     val formattedDate = remember(feedItem) { getPlatform().formatFeedItemDate(feedItem.published) }
@@ -194,7 +194,14 @@ private fun FeedItemRow(feedItem: FeedItem, modifier: Modifier = Modifier) {
         .fillMaxWidth()
         .clickable { uriHandler.openPostUri(feedItem.link, feedItem.platform) }
     ) {
-        Row(Modifier.padding(8.dp)) {
+        Row(
+            modifier = Modifier.padding(
+                start = 8.dp,
+                top = if (index == 0) 16.dp else 8.dp,
+                end = 8.dp,
+                bottom = 8.dp
+            )
+        ) {
             AsyncImage(
                 model = feedItem.authorImageUrl?.let {
                     getPlatform().corsProxiedUrlToAbsoluteUrl(
