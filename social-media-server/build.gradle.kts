@@ -32,6 +32,7 @@ dependencies {
 }
 
 application {
+    applicationDefaultJvmArgs = listOf("-Xmx768m")
     mainClass.set("com.cbruegg.socialmediaserver.MainKt")
 }
 
