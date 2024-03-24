@@ -1,4 +1,3 @@
-
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.text.AnnotatedString
@@ -39,35 +38,27 @@ object IOSPlatform : Platform {
 
 private class IOSUriHandler(private val clipboardManager: ClipboardManager) : ContextualUriHandler {
     override fun openUri(uri: String) {
-        // TODO Really never use Opener?
         println("Opening with standard handler: $uri")
-        UIApplication.sharedApplication.openURL(NSURL(string = uri))
+        UIApplication.sharedApplication.openURL(NSURL(string = uri), emptyMap<Any?, Any>(), null)
+    }
+
+    private fun tryOpenUri(uri: String): Boolean {
+        val nsUrl = NSURL(string = uri)
+        if (!UIApplication.sharedApplication.canOpenURL(nsUrl)) return false
+
+        println("Opening URL: ${nsUrl.absoluteString}")
+        UIApplication.sharedApplication.openURL(nsUrl, emptyMap<Any?, Any>(), null)
+        return true
     }
 
     override fun openPostUri(uri: String, platformOfPost: PlatformId) {
-        val sharedApplication = UIApplication.sharedApplication
-
         when (platformOfPost) {
             PlatformId.BlueSky -> openUri(uri)
 
             PlatformId.Twitter -> {
                 val postId = Url(uri).pathSegments.lastOrNull { it.isNumeric() }
-                if (postId != null) {
-                    val twitterAppUrl = NSURL(string = "twitter://status?id=${postId}")
-                    if (sharedApplication.canOpenURL(twitterAppUrl)) {
-                        println("Opening Twitter URL: ${twitterAppUrl.absoluteString}")
-                        sharedApplication.openURL(twitterAppUrl)
-                        return
-                    }
-                }
-
-                val openerUrl =
-                    NSURL(string = "opener://x-callback-url/show-options?url=${uri.encodeURLPath()}")
-                if (sharedApplication.canOpenURL(openerUrl)) {
-                    println("Opening Opener URL: ${openerUrl.absoluteString}")
-                    sharedApplication.openURL(openerUrl)
-                    return
-                }
+                if (postId != null && tryOpenUri("twitter://status?id=${postId}")) return
+                if (tryOpenUri("opener://x-callback-url/show-options?url=${uri.encodeURLPath()}")) return
 
                 openUri(uri)
             }
@@ -76,7 +67,7 @@ private class IOSUriHandler(private val clipboardManager: ClipboardManager) : Co
                 // For Mastodon, opening posts is not always reliable. Copy text to clipboard
                 // to let user paste it into the search bar of their Mastodon app if neede
                 clipboardManager.setText(AnnotatedString(uri))
-                
+
                 val postId = Url(uri).pathSegments.lastOrNull { it.isNumeric() }
                 if (false && postId != null) {
                     // Disabled for now as the postId is not the postId as known by the user's
@@ -91,30 +82,13 @@ private class IOSUriHandler(private val clipboardManager: ClipboardManager) : Co
                     // but always through the user's own server instead:
                     // https://stackoverflow.com/a/76288210/1502352
 
-                    val officialMastodonAppUrl = NSURL(string = "mastodon://status/${postId}")
-                    if (sharedApplication.canOpenURL(officialMastodonAppUrl)) {
-                        println("Opening Mastodon URL: ${officialMastodonAppUrl.absoluteString}")
-                        sharedApplication.openURL(officialMastodonAppUrl)
-                        return
-                    }
+                    if (tryOpenUri("mastodon://status/${postId}")) return
                 }
 
                 // See SceneDelegate.swift in https://github.dev/TheBLVD/mammoth
-                val mammothUrl =
-                    NSURL(string = "mammoth://" + uri.removePrefix("https://"))
-                if (sharedApplication.canOpenURL(mammothUrl)) {
-                    println("Opening Mammoth URL: ${mammothUrl.absoluteString}")
-                    sharedApplication.openURL(mammothUrl)
-                    return
-                }
+                if (tryOpenUri("mammoth://" + uri.removePrefix("https://"))) return
 
-                val openerUrl =
-                    NSURL(string = "opener://x-callback-url/show-options?url=${uri.encodeURLPath()}")
-                if (sharedApplication.canOpenURL(openerUrl)) {
-                    println("Opening Opener URL: ${openerUrl.absoluteString}")
-                    sharedApplication.openURL(openerUrl)
-                    return
-                }
+                if (tryOpenUri("opener://x-callback-url/show-options?url=${uri.encodeURLPath()}")) return
 
                 openUri(uri)
             }
@@ -123,16 +97,16 @@ private class IOSUriHandler(private val clipboardManager: ClipboardManager) : Co
 }
 
 private object IOSPersistence : Persistence {
-    private const val keyPrefix = "IOSPersistence_"
+    private const val KEY_PREFIX = "IOSPersistence_"
 
     override fun <T : Any> save(key: String, value: T, serializer: KSerializer<T>) {
         val serialized = Json.encodeToString(serializer, value)
         println("Storing $serialized for $key")
-        NSUserDefaults.standardUserDefaults.setObject(serialized, keyPrefix + key)
+        NSUserDefaults.standardUserDefaults.setObject(serialized, KEY_PREFIX + key)
     }
 
     override fun <T : Any> load(key: String, serializer: KSerializer<T>): T? {
-        val storedString = NSUserDefaults.standardUserDefaults.stringForKey(keyPrefix + key)
+        val storedString = NSUserDefaults.standardUserDefaults.stringForKey(KEY_PREFIX + key)
         val result = storedString?.let { Json.decodeFromString(serializer, it) }
         println("Got $result for $key")
         return result
