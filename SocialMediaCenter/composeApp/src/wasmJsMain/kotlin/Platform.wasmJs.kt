@@ -27,6 +27,6 @@ class WasmPlatform : Platform {
 }
 
 private fun jsFormatDate(epochMillis: String): String =
-    js("new Date(Number.parseInt(epochMillis)).toLocaleString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })")
+    js("new Date(Number.parseInt(epochMillis)).toLocaleString(undefined, { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric' })")
 
 actual fun getPlatform(): Platform = WasmPlatform()
