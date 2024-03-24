@@ -21,6 +21,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import nl.adaptivity.xmlutil.serialization.XML
+import java.io.IOException
 
 @Serializable
 data class MastodonUser(val server: String, val username: String)
@@ -53,7 +54,13 @@ class Mastodon(val followingsOf: List<MastodonUser>) : AuthenticatedSocialPlatfo
     private suspend fun getFeed(user: MastodonUser): List<FeedItem> {
         val followingsUrlFirst = "${user.server}/@${user.username}/following.json?page=1"
         val followedUsers: List<String> =
-            http.paginate<FollowingsResponse>(followingsUrlFirst) { it.next }.flatMap { it.orderedItems }
+            try {
+                http.paginate<FollowingsResponse>(followingsUrlFirst) { it.next }.flatMap { it.orderedItems }
+            } catch (e: IOException) {
+                e.printStackTrace()
+                // return early
+                return emptyList()
+            }
 
         val mastodonFeeds = coroutineScope {
             followedUsers

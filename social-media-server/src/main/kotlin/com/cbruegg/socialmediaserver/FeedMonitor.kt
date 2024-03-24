@@ -30,7 +30,15 @@ class FeedMonitor(
 
     fun start(scope: CoroutineScope): Job = scope.launch {
         while (isActive) {
-            val platformFeeds = platforms.map { async { it.platformId to it.getFeed() } }.awaitAll()
+            val platformFeeds = platforms.map { it.platformId to async { it.getFeed() } }
+                .map { (platformId, asyncFeed) -> platformId to runCatching { asyncFeed.await() } }
+                .onEach { (platformId, feedResult) ->
+                    if (feedResult.isFailure) {
+                        System.err.println("Refreshing platform $platformId failed, ignoring!")
+                    }
+                }
+                .filter { (_, feedResult) -> feedResult.isSuccess }
+                .map { (platformId, feedResult) -> platformId to feedResult.getOrThrow() }
 
             mutex.withLock {
                 for ((platformId, platformFeed) in platformFeeds) {

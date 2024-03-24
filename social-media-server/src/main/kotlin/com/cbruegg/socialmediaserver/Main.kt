@@ -103,7 +103,7 @@ suspend fun main(args: Array<String>) = coroutineScope {
     return@coroutineScope
 }
 
-private suspend fun createFeedMonitor(twitterScriptLocation: String, dataLocation: String, sources: Sources): FeedMonitor {
+private fun createFeedMonitor(twitterScriptLocation: String, dataLocation: String, sources: Sources): FeedMonitor {
     val platforms = listOf(
         Twitter(sources.twitterLists, twitterScriptLocation, dataLocation),
         Mastodon(sources.mastodonFollowings)
