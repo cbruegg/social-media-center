@@ -12,8 +12,10 @@ import io.ktor.server.application.*
 import io.ktor.server.http.content.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.util.*
 import io.ktor.utils.io.*
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import social.bigbone.MastodonClient
 import java.io.File
 
@@ -72,7 +74,7 @@ fun Routing.installRoutes(
     }
     get("/authorize/mastodon/start") {
         val instanceName = context.request.queryParameters["instanceName"]
-        val socialMediaCenterBaseUrl = context.request.queryParameters["socialMediaCenterBaseUrl"]?.decodeBase64String()
+        val socialMediaCenterBaseUrl = context.request.queryParameters["socialMediaCenterBaseUrl"]?.decodeURLQueryComponent()
         if (instanceName == null || socialMediaCenterBaseUrl == null) {
             call.respond(HttpStatusCode.BadRequest)
             return@get
@@ -100,12 +102,15 @@ fun Routing.installRoutes(
     }
     get(MASTODON_COMPLETE_AUTH_URL) {
         val authCode = context.request.queryParameters["code"]
-        val instanceName = context.request.queryParameters["instanceName"]
-        val socialMediaCenterBaseUrl = context.request.queryParameters["socialMediaCenterBaseUrl"]
-        if (authCode == null || instanceName == null || socialMediaCenterBaseUrl == null) {
+        val encodedParams = context.request.queryParameters["encodedParams"]?.decodeURLQueryComponent()
+            ?.let { Json.decodeFromString<MastodonAuthRedirectUriParameters>(it) }
+        if (authCode == null || encodedParams == null) {
             call.respond(HttpStatusCode.BadRequest)
             return@get
         }
+
+        val instanceName = encodedParams.instanceName
+        val socialMediaCenterBaseUrl = encodedParams.socialMediaCenterBaseUrl
 
         val client = MastodonClient.Builder(instanceName).build()
         val appRegistration = client.apps.getOrCreateSocialMediaCenterApp(
@@ -148,6 +153,11 @@ fun Routing.installRoutes(
     staticFiles("/", socialMediaCenterWebLocation)
 }
 
+@Serializable
+private data class MastodonAuthRedirectUriParameters(val instanceName: String, val socialMediaCenterBaseUrl: String)
+
 private fun getMastodonAuthRedirectUri(mastodonInstanceName: String, socialMediaCenterBaseUrl: String): String {
-    return "$socialMediaCenterBaseUrl/$MASTODON_COMPLETE_AUTH_URL?instanceName=$mastodonInstanceName&socialMediaCenterBaseUrl=${socialMediaCenterBaseUrl.encodeBase64()}"
+    val params = MastodonAuthRedirectUriParameters(mastodonInstanceName, socialMediaCenterBaseUrl)
+    val encodedParams = Json.encodeToString(params).encodeURLParameter()
+    return "$socialMediaCenterBaseUrl/$MASTODON_COMPLETE_AUTH_URL?encodedParams=$encodedParams"
 }

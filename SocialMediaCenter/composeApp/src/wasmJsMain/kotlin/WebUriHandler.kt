@@ -16,6 +16,7 @@ class WebUriHandler(
     }
 
     override fun openUri(uri: String) {
+        println("Opening $uri")
         defaultUriHandler.openUri(uri)
     }
 }

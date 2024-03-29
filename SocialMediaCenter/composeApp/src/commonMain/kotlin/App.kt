@@ -172,7 +172,7 @@ fun App() {
                                     val displayName =
                                         "@${unauthenticatedMastodonAccount.username}@${unauthenticatedMastodonAccount.serverWithoutScheme}"
                                     Text("Please authenticate your account $displayName")
-                                    TextButton({ uriHandler.openUri("$socialMediaCenterBaseUrl/authorize/mastodon/start?instanceName=${unauthenticatedMastodonAccount.serverWithoutScheme}&socialMediaCenterBaseUrl=$socialMediaCenterBaseUrl") }) {
+                                    TextButton({ uriHandler.openUri("$socialMediaCenterBaseUrl/authorize/mastodon/start?instanceName=${unauthenticatedMastodonAccount.serverWithoutScheme}&socialMediaCenterBaseUrl=${socialMediaCenterBaseUrl.encodeURLParameter()}") }) {
                                         Text("Authenticate")
                                     }
                                 }

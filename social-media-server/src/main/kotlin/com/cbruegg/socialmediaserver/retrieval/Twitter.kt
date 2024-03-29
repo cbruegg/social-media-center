@@ -31,7 +31,6 @@ class Twitter(
             output
         }
 
-
         val feedItemsResult = runCatching { Json.decodeFromString<List<FeedItem>>(output) }
         println("Got output from Twitter: ${feedItemsResult.getOrNull()?.take(5)}...")
         feedItemsResult.exceptionOrNull()?.printStackTrace()
