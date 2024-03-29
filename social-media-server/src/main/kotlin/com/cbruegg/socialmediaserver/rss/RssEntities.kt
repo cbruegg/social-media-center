@@ -1,16 +1,12 @@
 package com.cbruegg.socialmediaserver.rss
 
 import com.cbruegg.socialmediaserver.retrieval.FeedItem
-import com.cbruegg.socialmediaserver.retrieval.PlatformId
 import io.ktor.http.*
-import kotlinx.datetime.toKotlinInstant
 import kotlinx.serialization.Serializable
 import nl.adaptivity.xmlutil.serialization.XmlElement
 import nl.adaptivity.xmlutil.serialization.XmlSerialName
 import java.text.SimpleDateFormat
 import java.util.*
-
-val rssContentType = ContentType.parse("application/rss+xml; charset=utf-8")
 
 val rssPubDateFormat: ThreadLocal<SimpleDateFormat> =
     ThreadLocal.withInitial { SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", Locale.US) }
@@ -56,27 +52,6 @@ data class RssMediaContent(
     val medium: String = "image",
     val url: String
 )
-
-private val mastodonUrlPattern = Regex("https?://(.*)/(@.*)/.*")
-val RssItem.mastodonAuthor: String? get() {
-    val matchResult = mastodonUrlPattern.matchEntire(link) ?: return null
-    val serverName = matchResult.groupValues[1]
-    val userName = matchResult.groupValues[2]
-    return "$userName@$serverName"
-}
-
-fun RssItem.toFeedItem(author: String?, authorImageUrl: String?): FeedItem {
-    val published = rssPubDateFormat.get().parse(pubDate).toInstant().toKotlinInstant()
-    return FeedItem(
-        text = description,
-        author = author ?: mastodonAuthor ?: link,
-        authorImageUrl = authorImageUrl,
-        id = guid,
-        published = published,
-        link = link,
-        PlatformId.Mastodon
-    )
-}
 
 fun FeedItem.toRssItem(): RssItem = RssItem(
     link = link,

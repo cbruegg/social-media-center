@@ -20,7 +20,7 @@ data class FeedItem(
     val platform: PlatformId
 )
 
-interface AuthenticatedSocialPlatform {
+interface SocialPlatform {
     val platformId: PlatformId
     suspend fun getFeed(): List<FeedItem>
 }

@@ -9,9 +9,14 @@ version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
+    maven {
+        url = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
+    }
 }
 
 dependencies {
+    implementation("social.bigbone:bigbone:2.0.0-SNAPSHOT")
+
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.5.0")
@@ -27,6 +32,7 @@ dependencies {
     implementation("io.ktor:ktor-server-cors:$ktorVersion")
     implementation("io.ktor:ktor-server-netty:$ktorVersion")
     implementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
+    implementation("ch.qos.logback:logback-classic:1.5.3")
 
     testImplementation("org.jetbrains.kotlin:kotlin-test")
 }

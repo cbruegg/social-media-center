@@ -12,7 +12,7 @@ from twikit.utils import Result
 
 MAX_PAGES = 2
 SECONDS_BETWEEN_PAGES = 5
-CREDENTIALS_FILE = "credentials.json"
+CREDENTIALS_FILE = "credentials_twitter.json"
 COOKIES_FILE = "cookies.json"
 
 

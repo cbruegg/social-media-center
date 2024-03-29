@@ -12,7 +12,7 @@ class Twitter(
     private val listIds: List<TwitterList>,
     private val twitterScriptLocation: String,
     private val dataLocation: String
-) : AuthenticatedSocialPlatform {
+) : SocialPlatform {
     override val platformId: PlatformId = PlatformId.Twitter
 
     override suspend fun getFeed(): List<FeedItem> {
