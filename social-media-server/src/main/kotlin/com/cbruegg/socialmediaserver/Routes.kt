@@ -12,6 +12,7 @@ import io.ktor.server.application.*
 import io.ktor.server.http.content.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.util.*
 import io.ktor.utils.io.*
 import social.bigbone.MastodonClient
 import java.io.File
@@ -71,7 +72,7 @@ fun Routing.installRoutes(
     }
     get("/authorize/mastodon/start") {
         val instanceName = context.request.queryParameters["instanceName"]
-        val socialMediaCenterBaseUrl = context.request.queryParameters["socialMediaCenterBaseUrl"]
+        val socialMediaCenterBaseUrl = context.request.queryParameters["socialMediaCenterBaseUrl"]?.decodeBase64String()
         if (instanceName == null || socialMediaCenterBaseUrl == null) {
             call.respond(HttpStatusCode.BadRequest)
             return@get
@@ -148,5 +149,5 @@ fun Routing.installRoutes(
 }
 
 private fun getMastodonAuthRedirectUri(mastodonInstanceName: String, socialMediaCenterBaseUrl: String): String {
-    return "$socialMediaCenterBaseUrl/$MASTODON_COMPLETE_AUTH_URL?instanceName=$mastodonInstanceName&socialMediaCenterBaseUrl=$socialMediaCenterBaseUrl"
+    return "$socialMediaCenterBaseUrl/$MASTODON_COMPLETE_AUTH_URL?instanceName=$mastodonInstanceName&socialMediaCenterBaseUrl=${socialMediaCenterBaseUrl.encodeBase64()}"
 }
