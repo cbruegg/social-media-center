@@ -6,8 +6,8 @@ import com.cbruegg.socialmediaserver.retrieval.SocialPlatform
 import kotlinx.datetime.toKotlinInstant
 import kotlinx.serialization.Serializable
 import social.bigbone.MastodonClient
+import social.bigbone.PrecisionDateTime
 import social.bigbone.api.Range
-import social.bigbone.api.Scope
 import social.bigbone.api.entity.Status
 import java.time.Instant
 
@@ -47,11 +47,11 @@ class Mastodon(
 
 }
 
-private fun Status.toFeedItem(): FeedItem {
+private fun Status.toFeedItem(createdAt: PrecisionDateTime = this.createdAt): FeedItem {
     val reblog = reblog
     if (reblog != null) {
         // TODO Add metadata of reposter and display in client
-        return reblog.toFeedItem()
+        return reblog.toFeedItem(createdAt = createdAt)
     }
 
     return FeedItem(
