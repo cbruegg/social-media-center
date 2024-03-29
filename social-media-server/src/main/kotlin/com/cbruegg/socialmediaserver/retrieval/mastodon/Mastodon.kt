@@ -7,6 +7,7 @@ import kotlinx.datetime.toKotlinInstant
 import kotlinx.serialization.Serializable
 import social.bigbone.MastodonClient
 import social.bigbone.api.Range
+import social.bigbone.api.Scope
 import social.bigbone.api.entity.Status
 import java.time.Instant
 

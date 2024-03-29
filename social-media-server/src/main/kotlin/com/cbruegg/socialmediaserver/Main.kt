@@ -4,6 +4,8 @@ import com.cbruegg.socialmediaserver.retrieval.PlatformId
 import com.cbruegg.socialmediaserver.retrieval.Twitter
 import com.cbruegg.socialmediaserver.retrieval.mastodon.Mastodon
 import com.cbruegg.socialmediaserver.retrieval.mastodon.MastodonCredentialsRepository
+import com.cbruegg.socialmediaserver.retrieval.mastodon.getOrCreateSocialMediaCenterApp
+import com.cbruegg.socialmediaserver.retrieval.mastodon.mastodonAppScope
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
@@ -27,9 +29,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import nl.adaptivity.xmlutil.serialization.XML
 import social.bigbone.MastodonClient
-import social.bigbone.api.Scope
-import social.bigbone.api.entity.Application
-import social.bigbone.api.method.AppMethods
 import java.io.File
 import kotlin.io.path.Path
 import kotlin.io.path.readText
@@ -50,7 +49,7 @@ suspend fun main(args: Array<String>): Unit = coroutineScope {
     val sources = loadSources(dataLocation)
 
     if (sources.mastodonFollowings.isNotEmpty()) {
-        // TODO Check if all servers are authorized in config already, otherwise print URL to auth
+        // TODO Check if all servers are authorized in config already, otherwise show in app UI link to authorize
     }
 
     val feedMonitor = createFeedMonitor(twitterScriptLocation, dataLocation, sources, mastodonCredentialsRepository)
@@ -114,7 +113,6 @@ suspend fun main(args: Array<String>): Unit = coroutineScope {
 
             }
             get("/authorize/mastodon/start") {
-                // TODO More error handling
                 val instanceName = context.request.queryParameters["instanceName"]
                 if (instanceName == null) {
                     call.respond(HttpStatusCode.BadRequest)
@@ -130,20 +128,18 @@ suspend fun main(args: Array<String>): Unit = coroutineScope {
                 val clientId = appRegistration.clientId
 
                 if (clientId == null) {
-                    call.respond(HttpStatusCode.BadGateway)
+                    call.respond(HttpStatusCode.BadGateway, "Invalid client configuration")
                     return@get
                 }
 
-                val url = client.oauth.getOAuthUrl(
+                val oauthUrl = client.oauth.getOAuthUrl(
                     clientId = clientId,
                     redirectUri = getMastodonAuthRedirectUri(instanceName),
                     scope = mastodonAppScope
                 )
-
-                call.respondRedirect(url)
+                call.respondRedirect(oauthUrl)
             }
             get(MASTODON_COMPLETE_AUTH_URL) {
-                // TODO More error handling
                 val authCode = context.request.queryParameters["code"]
                 val instanceName = context.request.queryParameters["instanceName"]
                 if (authCode == null || instanceName == null) {
@@ -161,7 +157,7 @@ suspend fun main(args: Array<String>): Unit = coroutineScope {
                 val clientSecret = appRegistration.clientSecret
 
                 if (clientId == null || clientSecret == null) {
-                    call.respond(HttpStatusCode.BadGateway)
+                    call.respond(HttpStatusCode.InternalServerError, "Invalid client configuration")
                     return@get
                 }
 
@@ -214,32 +210,7 @@ fun shouldProxyUrlForCors(url: String): Boolean {
     return "twimg.com" in url
 }
 
-private fun PipelineContext<Unit, ApplicationCall>.getMastodonAuthRedirectUri(mastodonInstanceName: String): String {
+private fun PipelineContext<*, ApplicationCall>.getMastodonAuthRedirectUri(mastodonInstanceName: String): String {
     val req = context.request.origin
     return "${req.scheme}://${req.serverHost}:${req.serverPort}/$MASTODON_COMPLETE_AUTH_URL?instanceName=$mastodonInstanceName"
-}
-
-private val mastodonAppScope = Scope(Scope.READ.ALL)
-private suspend fun AppMethods.getOrCreateSocialMediaCenterApp(
-    instanceName: String,
-    mastodonCredentialsRepository: MastodonCredentialsRepository,
-    redirectUri: String
-): Application {
-    val credentials = mastodonCredentialsRepository.getCredentials()
-    val serverCredentials = credentials.servers[instanceName]
-    if (serverCredentials?.clientApplication != null) {
-        return serverCredentials.clientApplication
-    }
-
-    val created = createApp(
-        clientName = "SocialMediaCenter",
-        redirectUris = redirectUri,
-        scope = mastodonAppScope,
-        website = "https://cbruegg.com/"
-    ).execute()
-
-    val newCredentials = credentials.withClientApplication(instanceName, created)
-    mastodonCredentialsRepository.updateWith(newCredentials)
-
-    return created
 }
