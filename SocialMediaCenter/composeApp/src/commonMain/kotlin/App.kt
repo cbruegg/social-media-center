@@ -168,7 +168,7 @@ fun App() {
                         }
                         for (unauthenticatedMastodonAccount in unauthenticatedMastodonAccounts) {
                             Card(modifier = Modifier.padding(8.dp)) {
-                                Row {
+                                Column {
                                     val displayName =
                                         "@${unauthenticatedMastodonAccount.username}@${unauthenticatedMastodonAccount.serverWithoutScheme}"
                                     Text("Please authenticate your account $displayName")
