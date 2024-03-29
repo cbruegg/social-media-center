@@ -10,10 +10,8 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.http.content.*
-import io.ktor.server.plugins.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.util.pipeline.*
 import io.ktor.utils.io.*
 import social.bigbone.MastodonClient
 import java.io.File
@@ -73,7 +71,8 @@ fun Routing.installRoutes(
     }
     get("/authorize/mastodon/start") {
         val instanceName = context.request.queryParameters["instanceName"]
-        if (instanceName == null) {
+        val socialMediaCenterBaseUrl = context.request.queryParameters["socialMediaCenterBaseUrl"]
+        if (instanceName == null || socialMediaCenterBaseUrl == null) {
             call.respond(HttpStatusCode.BadRequest)
             return@get
         }
@@ -82,7 +81,7 @@ fun Routing.installRoutes(
         val appRegistration = client.apps.getOrCreateSocialMediaCenterApp(
             instanceName,
             mastodonCredentialsRepository,
-            getMastodonAuthRedirectUri(instanceName)
+            getMastodonAuthRedirectUri(instanceName, socialMediaCenterBaseUrl)
         )
         val clientId = appRegistration.clientId
 
@@ -93,7 +92,7 @@ fun Routing.installRoutes(
 
         val oauthUrl = client.oauth.getOAuthUrl(
             clientId = clientId,
-            redirectUri = getMastodonAuthRedirectUri(instanceName),
+            redirectUri = getMastodonAuthRedirectUri(instanceName, socialMediaCenterBaseUrl),
             scope = mastodonAppScope
         )
         call.respondRedirect(oauthUrl)
@@ -101,7 +100,8 @@ fun Routing.installRoutes(
     get(MASTODON_COMPLETE_AUTH_URL) {
         val authCode = context.request.queryParameters["code"]
         val instanceName = context.request.queryParameters["instanceName"]
-        if (authCode == null || instanceName == null) {
+        val socialMediaCenterBaseUrl = context.request.queryParameters["socialMediaCenterBaseUrl"]
+        if (authCode == null || instanceName == null || socialMediaCenterBaseUrl == null) {
             call.respond(HttpStatusCode.BadRequest)
             return@get
         }
@@ -110,7 +110,7 @@ fun Routing.installRoutes(
         val appRegistration = client.apps.getOrCreateSocialMediaCenterApp(
             instanceName,
             mastodonCredentialsRepository,
-            getMastodonAuthRedirectUri(instanceName)
+            getMastodonAuthRedirectUri(instanceName, socialMediaCenterBaseUrl)
         )
         val clientId = appRegistration.clientId
         val clientSecret = appRegistration.clientSecret
@@ -123,7 +123,7 @@ fun Routing.installRoutes(
         val token = client.oauth.getUserAccessTokenWithAuthorizationCodeGrant(
             clientId = clientId,
             clientSecret = clientSecret,
-            redirectUri = getMastodonAuthRedirectUri(instanceName),
+            redirectUri = getMastodonAuthRedirectUri(instanceName, socialMediaCenterBaseUrl),
             code = authCode,
             scope = mastodonAppScope
         ).execute()
@@ -147,7 +147,6 @@ fun Routing.installRoutes(
     staticFiles("/", socialMediaCenterWebLocation)
 }
 
-private fun PipelineContext<*, ApplicationCall>.getMastodonAuthRedirectUri(mastodonInstanceName: String): String {
-    val req = context.request.origin
-    return "${req.scheme}://${req.serverHost}:${req.serverPort}/$MASTODON_COMPLETE_AUTH_URL?instanceName=$mastodonInstanceName"
+private fun getMastodonAuthRedirectUri(mastodonInstanceName: String, socialMediaCenterBaseUrl: String): String {
+    return "$socialMediaCenterBaseUrl/$MASTODON_COMPLETE_AUTH_URL?instanceName=$mastodonInstanceName&socialMediaCenterBaseUrl=$socialMediaCenterBaseUrl"
 }
