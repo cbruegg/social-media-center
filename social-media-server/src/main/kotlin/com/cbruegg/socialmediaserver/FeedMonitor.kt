@@ -4,9 +4,6 @@ import com.cbruegg.socialmediaserver.retrieval.FeedItem
 import com.cbruegg.socialmediaserver.retrieval.PlatformId
 import com.cbruegg.socialmediaserver.retrieval.SocialPlatform
 import com.cbruegg.socialmediaserver.retrieval.oldestAcceptedFeedItemInstant
-import com.cbruegg.socialmediaserver.rss.Rss
-import com.cbruegg.socialmediaserver.rss.RssChannel
-import com.cbruegg.socialmediaserver.rss.toRssItem
 import io.ktor.http.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
@@ -78,17 +75,6 @@ class FeedMonitor(
 
 private fun String.proxiedUrl(): String {
     return "/proxy?url=${this.encodeURLQueryComponent()}"
-}
-
-fun List<FeedItem>.toRssFeed(): Rss {
-    return Rss(
-        RssChannel(
-            title = "Combined Social Media Feed",
-            description = "",
-            link = "",
-            item = this.map { it.toRssItem() }
-        )
-    )
 }
 
 private class WrappedFeedItem(val feedItem: FeedItem) {

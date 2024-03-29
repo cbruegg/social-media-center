@@ -15,7 +15,6 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.pipeline.*
 import io.ktor.utils.io.*
-import nl.adaptivity.xmlutil.serialization.XML
 import social.bigbone.MastodonClient
 import java.io.File
 
@@ -32,11 +31,6 @@ fun Routing.installRoutes(
         val isCorsRestricted = context.request.queryParameters["isCorsRestricted"] == "true"
         val mergedFeed = feedMonitor.getMergedFeed(isCorsRestricted)
         call.respond(mergedFeed)
-    }
-    get("/rss") {
-        // TODO Remove this method
-        val mergedFeed = feedMonitor.getMergedFeed(isCorsRestricted = true)
-        call.respond(XML.encodeToString(mergedFeed.toRssFeed()))
     }
     get("/proxy") {
         val urlToProxy = context.request.queryParameters["url"]
