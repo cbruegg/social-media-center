@@ -18,6 +18,8 @@ class Api(private val baseUrl: String, private val httpClient: HttpClient) {
     }
 }
 
+// TODO Move this stuff to common module
+
 enum class PlatformId { Twitter, Mastodon, BlueSky }
 
 @Serializable
@@ -33,3 +35,5 @@ data class FeedItem(
 
 @Serializable
 data class MastodonUser(val server: String, val username: String)
+
+val MastodonUser.serverWithoutScheme get() = server.substringAfter("://")

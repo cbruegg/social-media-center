@@ -169,10 +169,10 @@ fun App() {
                             Card(modifier = Modifier.padding(8.dp)) {
                                 Row {
                                     Text(
-                                        "Please authenticate your account(s):${
+                                        "Please authenticate your account(s):\n${
                                             unauthenticatedMastodonAccounts.joinToString(
                                                 separator = "\n",
-                                                transform = { "@${it.username}@${it.server}" })
+                                                transform = { "@${it.username}@${it.serverWithoutScheme}" })
                                         }"
                                     )
                                     TextButton({ uriHandler.openUri("$socialMediaCenterBaseUrl/authorize/mastodon/start") }) {
