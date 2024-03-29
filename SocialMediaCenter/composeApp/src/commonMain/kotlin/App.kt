@@ -77,6 +77,7 @@ fun App() {
     MaterialTheme(
         colors = if (isSystemInDarkTheme()) darkColors() else lightColors()
     ) {
+        // TODO Move logic to viewmodel
         val clipboardManager = LocalClipboardManager.current
         val localUriHandler = LocalUriHandler.current
         val uriHandler = remember(clipboardManager, localUriHandler) {
@@ -165,17 +166,13 @@ fun App() {
                                 }
                             }
                         }
-                        if (unauthenticatedMastodonAccounts.isNotEmpty()) {
+                        for (unauthenticatedMastodonAccount in unauthenticatedMastodonAccounts) {
                             Card(modifier = Modifier.padding(8.dp)) {
                                 Row {
-                                    Text(
-                                        "Please authenticate your account(s):\n${
-                                            unauthenticatedMastodonAccounts.joinToString(
-                                                separator = "\n",
-                                                transform = { "@${it.username}@${it.serverWithoutScheme}" })
-                                        }"
-                                    )
-                                    TextButton({ uriHandler.openUri("$socialMediaCenterBaseUrl/authorize/mastodon/start") }) {
+                                    val displayName =
+                                        "@${unauthenticatedMastodonAccount.username}@${unauthenticatedMastodonAccount.serverWithoutScheme}"
+                                    Text("Please authenticate your account $displayName")
+                                    TextButton({ uriHandler.openUri("$socialMediaCenterBaseUrl/authorize/mastodon/start?instanceName=${unauthenticatedMastodonAccount.serverWithoutScheme}") }) {
                                         Text("Authenticate")
                                     }
                                 }
