@@ -12,19 +12,15 @@ import io.ktor.server.application.*
 import io.ktor.server.http.content.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.sessions.*
 import io.ktor.utils.io.*
-import kotlinx.datetime.Instant
-import kotlinx.datetime.toKotlinInstant
 import social.bigbone.MastodonClient
 import java.io.File
-import java.util.*
-import kotlin.time.Duration.Companion.days
 
 // TODO: Add authentication
 
 private const val MASTODON_COMPLETE_AUTH_URL = "/authorize/mastodon/complete"
 
-@OptIn(ExperimentalStdlibApi::class)
 fun Routing.installRoutes(
     feedMonitor: FeedMonitor,
     httpClient: HttpClient,
@@ -83,12 +79,15 @@ fun Routing.installRoutes(
             return@get
         }
 
+        call.sessions.set(MastodonAuthSession(instanceName, socialMediaCenterBaseUrl))
+
         val client = MastodonClient.Builder(instanceName).build()
         val appRegistration = client.apps.getOrCreateSocialMediaCenterApp(
             instanceName,
             mastodonCredentialsRepository,
-            getMastodonAuthRedirectUri(instanceName, socialMediaCenterBaseUrl)
+            getMastodonAuthRedirectUri(socialMediaCenterBaseUrl)
         )
+
         val clientId = appRegistration.clientId
 
         if (clientId == null) {
@@ -98,28 +97,27 @@ fun Routing.installRoutes(
 
         val oauthUrl = client.oauth.getOAuthUrl(
             clientId = clientId,
-            redirectUri = getMastodonAuthRedirectUri(instanceName, socialMediaCenterBaseUrl),
+            redirectUri = getMastodonAuthRedirectUri(socialMediaCenterBaseUrl),
             scope = mastodonAppScope
         )
         call.respondRedirect(oauthUrl)
     }
     get(MASTODON_COMPLETE_AUTH_URL) {
         val authCode = context.request.queryParameters["code"]
-        val encodedParams = context.request.queryParameters["uuid"]
-            ?.let { synchronized(mastodonAuthSessions) { mastodonAuthSessions[UUID.fromString(it)] } }
-        if (authCode == null || encodedParams == null) {
+        val authSession = context.sessions.get<MastodonAuthSession>()
+        if (authCode == null || authSession == null) {
             call.respond(HttpStatusCode.BadRequest)
             return@get
         }
 
-        val instanceName = encodedParams.instanceName
-        val socialMediaCenterBaseUrl = encodedParams.socialMediaCenterBaseUrl
+        val instanceName = authSession.instanceName
+        val socialMediaCenterBaseUrl = authSession.socialMediaCenterBaseUrl
 
         val client = MastodonClient.Builder(instanceName).build()
         val appRegistration = client.apps.getOrCreateSocialMediaCenterApp(
             instanceName,
             mastodonCredentialsRepository,
-            getMastodonAuthRedirectUri(instanceName, socialMediaCenterBaseUrl)
+            getMastodonAuthRedirectUri(socialMediaCenterBaseUrl)
         )
         val clientId = appRegistration.clientId
         val clientSecret = appRegistration.clientSecret
@@ -132,7 +130,7 @@ fun Routing.installRoutes(
         val token = client.oauth.getUserAccessTokenWithAuthorizationCodeGrant(
             clientId = clientId,
             clientSecret = clientSecret,
-            redirectUri = getMastodonAuthRedirectUri(instanceName, socialMediaCenterBaseUrl),
+            redirectUri = getMastodonAuthRedirectUri(socialMediaCenterBaseUrl),
             code = authCode,
             scope = mastodonAppScope
         ).execute()
@@ -156,27 +154,8 @@ fun Routing.installRoutes(
     staticFiles("/", socialMediaCenterWebLocation)
 }
 
-private data class MastodonAuthRedirectUriParameters(
-    val instanceName: String,
-    val socialMediaCenterBaseUrl: String,
-    val started: Instant
-)
-
-private fun getMastodonAuthRedirectUri(mastodonInstanceName: String, socialMediaCenterBaseUrl: String): String {
-    val params = MastodonAuthRedirectUriParameters(
-        mastodonInstanceName,
-        socialMediaCenterBaseUrl,
-        java.time.Instant.now().toKotlinInstant()
-    )
-    val uuid = UUID.randomUUID()
-    synchronized(mastodonAuthSessions) {
-        mastodonAuthSessions.entries.removeIf { (_, params) ->
-            params.started < java.time.Instant.now().toKotlinInstant() - 1.days
-        }
-        mastodonAuthSessions[uuid] = params
-    }
-
-    return "$socialMediaCenterBaseUrl/$MASTODON_COMPLETE_AUTH_URL?uuid=$uuid"
+private fun getMastodonAuthRedirectUri(socialMediaCenterBaseUrl: String): String {
+    return "$socialMediaCenterBaseUrl/$MASTODON_COMPLETE_AUTH_URL"
 }
 
-private val mastodonAuthSessions = mutableMapOf<UUID, MastodonAuthRedirectUriParameters>()
+data class MastodonAuthSession(val instanceName: String, val socialMediaCenterBaseUrl: String)

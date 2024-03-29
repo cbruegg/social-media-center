@@ -12,6 +12,7 @@ import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.routing.*
+import io.ktor.server.sessions.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
@@ -48,6 +49,9 @@ suspend fun main(args: Array<String>): Unit = coroutineScope {
         }
         install(CORS) {
             anyHost()
+        }
+        install(Sessions) {
+            cookie<MastodonAuthSession>("mastodon_auth_session")
         }
 
         routing {
