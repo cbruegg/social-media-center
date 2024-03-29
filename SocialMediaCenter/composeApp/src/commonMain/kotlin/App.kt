@@ -93,6 +93,7 @@ fun App() {
         ) {
             val scope = rememberCoroutineScope()
             var feedItems: List<FeedItem>? by remember { mutableStateOf(null) }
+            var unauthenticatedMastodonAccounts by remember { mutableStateOf(emptyList<MastodonUser>()) }
             var lastLoadFailure: Throwable? by remember { mutableStateOf(null) }
             var isLoading by remember { mutableStateOf(false) }
             var shouldRefreshPeriodically by remember { mutableStateOf(true) }
@@ -100,9 +101,13 @@ fun App() {
                 if (!isLoading) {
                     println("Refreshing...")
                     isLoading = true
-                    val result = feedLoader.fetch()
+                    val result = api.getFeed()
                     feedItems = result.getOrNull() ?: feedItems
                     lastLoadFailure = result.exceptionOrNull()
+                    unauthenticatedMastodonAccounts =
+                        api.getUnauthenticatedMastodonAccounts().getOrDefault(
+                            emptyList()
+                        )
                     isLoading = false
                 }
             }
@@ -157,6 +162,22 @@ fun App() {
                                     Text("Loading error!")
                                     TextButton({ showLastLoadFailure = true }) { Text("Details") }
                                     TextButton({ lastLoadFailure = null }) { Text("Dismiss") }
+                                }
+                            }
+                        }
+                        if (unauthenticatedMastodonAccounts.isNotEmpty()) {
+                            Card(modifier = Modifier.padding(8.dp)) {
+                                Row {
+                                    Text(
+                                        "Please authenticate your account(s):${
+                                            unauthenticatedMastodonAccounts.joinToString(
+                                                separator = "\n",
+                                                transform = { "@${it.username}@${it.server}" })
+                                        }"
+                                    )
+                                    TextButton({ uriHandler.openUri("$socialMediaCenterBaseUrl/authorize/mastodon/start") }) {
+                                        Text("Authenticate")
+                                    }
                                 }
                             }
                         }

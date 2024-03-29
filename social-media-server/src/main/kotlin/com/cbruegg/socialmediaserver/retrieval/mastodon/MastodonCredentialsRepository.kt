@@ -1,5 +1,6 @@
 package com.cbruegg.socialmediaserver.retrieval.mastodon
 
+import com.cbruegg.socialmediaserver.Sources
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
@@ -38,5 +39,10 @@ class MastodonCredentialsRepository(private val file: File) {
     suspend fun update(updater: (MastodonCredentials) -> MastodonCredentials) {
         val updated = updater(getCredentials())
         updateWith(updated)
+    }
+
+    suspend fun findMissingCredentials(sources: Sources): List<MastodonUser> {
+        val credentials = getCredentials()
+        return sources.mastodonFollowings.filter { credentials.findClientConfiguration(it) == null }
     }
 }

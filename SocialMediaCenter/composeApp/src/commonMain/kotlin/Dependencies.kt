@@ -14,7 +14,7 @@ private val httpClient = HttpClient {
 }
 
 val socialMediaCenterBaseUrl = "https://socialmediacenter.cbruegg.com"
-val feedLoader = FeedLoader(socialMediaCenterBaseUrl, httpClient)
+val api = Api(socialMediaCenterBaseUrl, httpClient)
 
 suspend fun downloadEmoji(emojiUrl: EmojiUrl): ByteArray {
     val bytes = httpClient.get(emojiUrl.url).body<ByteArray>()

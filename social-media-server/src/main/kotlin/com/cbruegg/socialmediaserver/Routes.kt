@@ -18,6 +18,8 @@ import io.ktor.utils.io.*
 import social.bigbone.MastodonClient
 import java.io.File
 
+// TODO: Add authentication
+
 private const val MASTODON_COMPLETE_AUTH_URL = "/authorize/mastodon/complete"
 
 fun Routing.installRoutes(
@@ -138,6 +140,9 @@ fun Routing.installRoutes(
         runCatching { feedMonitor.update(setOf(PlatformId.Mastodon)) }
 
         call.respondRedirect("/")
+    }
+    get("/unauthenticated-mastodon-accounts") {
+        call.respond(mastodonCredentialsRepository.findMissingCredentials(sources))
     }
     staticFiles("/", socialMediaCenterWebLocation)
 }
