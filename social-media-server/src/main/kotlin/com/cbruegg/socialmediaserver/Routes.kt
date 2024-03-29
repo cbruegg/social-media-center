@@ -23,6 +23,7 @@ import java.io.File
 
 private const val MASTODON_COMPLETE_AUTH_URL = "/authorize/mastodon/complete"
 
+@OptIn(ExperimentalStdlibApi::class)
 fun Routing.installRoutes(
     feedMonitor: FeedMonitor,
     httpClient: HttpClient,
@@ -102,7 +103,7 @@ fun Routing.installRoutes(
     }
     get(MASTODON_COMPLETE_AUTH_URL) {
         val authCode = context.request.queryParameters["code"]
-        val encodedParams = context.request.queryParameters["encodedParams"]?.decodeURLQueryComponent()
+        val encodedParams = context.request.queryParameters["encodedParams"]?.hexToByteArray()?.decodeToString()
             ?.let { Json.decodeFromString<MastodonAuthRedirectUriParameters>(it) }
         if (authCode == null || encodedParams == null) {
             call.respond(HttpStatusCode.BadRequest)
@@ -156,8 +157,9 @@ fun Routing.installRoutes(
 @Serializable
 private data class MastodonAuthRedirectUriParameters(val instanceName: String, val socialMediaCenterBaseUrl: String)
 
+@OptIn(ExperimentalStdlibApi::class)
 private fun getMastodonAuthRedirectUri(mastodonInstanceName: String, socialMediaCenterBaseUrl: String): String {
     val params = MastodonAuthRedirectUriParameters(mastodonInstanceName, socialMediaCenterBaseUrl)
-    val encodedParams = Json.encodeToString(params).encodeURLParameter()
+    val encodedParams = Json.encodeToString(params).toByteArray().toHexString()
     return "$socialMediaCenterBaseUrl/$MASTODON_COMPLETE_AUTH_URL?encodedParams=$encodedParams"
 }
