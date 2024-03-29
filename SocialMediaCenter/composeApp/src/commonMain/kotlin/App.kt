@@ -50,9 +50,11 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import components.FeedItemContentText
 import components.LifecycleHandler
+import io.ktor.http.encodeURLParameter
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Instant
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.kodein.emoji.compose.LocalEmojiDownloader
 import org.kodein.emoji.compose.WithPlatformEmoji
@@ -169,10 +171,14 @@ fun App() {
                         for (unauthenticatedMastodonAccount in unauthenticatedMastodonAccounts) {
                             Card(modifier = Modifier.padding(8.dp)) {
                                 Column {
+                                    val instanceName =
+                                        unauthenticatedMastodonAccount.serverWithoutScheme
                                     val displayName =
-                                        "@${unauthenticatedMastodonAccount.username}@${unauthenticatedMastodonAccount.serverWithoutScheme}"
+                                        "@${unauthenticatedMastodonAccount.username}@$instanceName"
                                     Text("Please authenticate your account $displayName")
-                                    TextButton({ uriHandler.openUri("$socialMediaCenterBaseUrl/authorize/mastodon/start?instanceName=${unauthenticatedMastodonAccount.serverWithoutScheme}&socialMediaCenterBaseUrl=${socialMediaCenterBaseUrl.encodeURLParameter()}") }) {
+                                    TextButton({
+                                        uriHandler.openUri("$socialMediaCenterBaseUrl/authorize/mastodon/start?instanceName=$instanceName&socialMediaCenterBaseUrl=${socialMediaCenterBaseUrl.encodeURLParameter()}")
+                                    }) {
                                         Text("Authenticate")
                                     }
                                 }
