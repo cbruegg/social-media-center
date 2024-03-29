@@ -13,11 +13,12 @@ import io.ktor.server.http.content.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.utils.io.*
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
+import kotlinx.datetime.Instant
+import kotlinx.datetime.toKotlinInstant
 import social.bigbone.MastodonClient
 import java.io.File
+import java.util.*
+import kotlin.time.Duration.Companion.days
 
 // TODO: Add authentication
 
@@ -75,7 +76,8 @@ fun Routing.installRoutes(
     }
     get("/authorize/mastodon/start") {
         val instanceName = context.request.queryParameters["instanceName"]
-        val socialMediaCenterBaseUrl = context.request.queryParameters["socialMediaCenterBaseUrl"]?.decodeURLQueryComponent()
+        val socialMediaCenterBaseUrl =
+            context.request.queryParameters["socialMediaCenterBaseUrl"]?.decodeURLQueryComponent()
         if (instanceName == null || socialMediaCenterBaseUrl == null) {
             call.respond(HttpStatusCode.BadRequest)
             return@get
@@ -103,8 +105,8 @@ fun Routing.installRoutes(
     }
     get(MASTODON_COMPLETE_AUTH_URL) {
         val authCode = context.request.queryParameters["code"]
-        val encodedParams = context.request.queryParameters["encodedParams"]?.hexToByteArray()?.decodeToString()
-            ?.let { Json.decodeFromString<MastodonAuthRedirectUriParameters>(it) }
+        val encodedParams = context.request.queryParameters["uuid"]
+            ?.let { synchronized(mastodonAuthSessions) { mastodonAuthSessions[UUID.fromString(it)] } }
         if (authCode == null || encodedParams == null) {
             call.respond(HttpStatusCode.BadRequest)
             return@get
@@ -154,12 +156,27 @@ fun Routing.installRoutes(
     staticFiles("/", socialMediaCenterWebLocation)
 }
 
-@Serializable
-private data class MastodonAuthRedirectUriParameters(val instanceName: String, val socialMediaCenterBaseUrl: String)
+private data class MastodonAuthRedirectUriParameters(
+    val instanceName: String,
+    val socialMediaCenterBaseUrl: String,
+    val started: Instant
+)
 
-@OptIn(ExperimentalStdlibApi::class)
 private fun getMastodonAuthRedirectUri(mastodonInstanceName: String, socialMediaCenterBaseUrl: String): String {
-    val params = MastodonAuthRedirectUriParameters(mastodonInstanceName, socialMediaCenterBaseUrl)
-    val encodedParams = Json.encodeToString(params).toByteArray().toHexString()
-    return "$socialMediaCenterBaseUrl/$MASTODON_COMPLETE_AUTH_URL?encodedParams=$encodedParams"
+    val params = MastodonAuthRedirectUriParameters(
+        mastodonInstanceName,
+        socialMediaCenterBaseUrl,
+        java.time.Instant.now().toKotlinInstant()
+    )
+    val uuid = UUID.randomUUID()
+    synchronized(mastodonAuthSessions) {
+        mastodonAuthSessions.entries.removeIf { (_, params) ->
+            params.started < java.time.Instant.now().toKotlinInstant() - 1.days
+        }
+        mastodonAuthSessions[uuid] = params
+    }
+
+    return "$socialMediaCenterBaseUrl/$MASTODON_COMPLETE_AUTH_URL?uuid=$uuid"
 }
+
+private val mastodonAuthSessions = mutableMapOf<UUID, MastodonAuthRedirectUriParameters>()
