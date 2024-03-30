@@ -6,7 +6,6 @@ import com.cbruegg.socialmediaserver.retrieval.SocialPlatform
 import kotlinx.datetime.toKotlinInstant
 import kotlinx.serialization.Serializable
 import social.bigbone.MastodonClient
-import social.bigbone.PrecisionDateTime
 import social.bigbone.api.Range
 import social.bigbone.api.entity.Status
 import java.time.Instant
@@ -47,20 +46,16 @@ class Mastodon(
 
 }
 
-private fun Status.toFeedItem(createdAt: PrecisionDateTime = this.createdAt): FeedItem {
-    val reblog = reblog
-    if (reblog != null) {
-        // TODO Add metadata of reposter and display in client
-        return reblog.toFeedItem(createdAt = createdAt)
-    }
-
+private fun Status.toFeedItem(): FeedItem {
+    val url = url.takeIf { it.isNotEmpty() } ?: uri
     return FeedItem(
         text = content,
         author = account?.acct?.let { "@$it" } ?: "MISSING_ACCOUNT",
         authorImageUrl = account?.avatarStatic,
-        id = url,
+        id = url.takeIf { it.isNotEmpty() } ?: uri,
         published = createdAt.mostPreciseOrFallback(Instant.now()).toKotlinInstant(),
-        link = url,
-        platform = PlatformId.Mastodon
+        link = url.takeIf { it.isNotEmpty() },
+        platform = PlatformId.Mastodon,
+        repost = reblog?.toFeedItem()
     )
 }

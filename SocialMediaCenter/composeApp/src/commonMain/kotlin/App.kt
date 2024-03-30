@@ -1,3 +1,4 @@
+
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -54,7 +55,6 @@ import io.ktor.http.encodeURLParameter
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Instant
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.kodein.emoji.compose.LocalEmojiDownloader
 import org.kodein.emoji.compose.WithPlatformEmoji
@@ -189,7 +189,12 @@ fun App() {
                                 items(
                                     feedItems.size,
                                     key = { feedItems[it].id },
-                                    itemContent = { FeedItemRow(feedItems[it], it) }
+                                    itemContent = {
+                                        FeedItemRow(
+                                            feedItems[it],
+                                            Modifier.padding(top = if (it == 0) 8.dp else 0.dp)
+                                        )
+                                    }
                                 )
                             }
                         }
@@ -221,21 +226,26 @@ private fun rememberForeverFeedItemsListState(feedItems: List<FeedItem>): LazyLi
 }
 
 @Composable
-private fun FeedItemRow(feedItem: FeedItem, index: Int, modifier: Modifier = Modifier) {
+private fun FeedItemRow(
+    feedItem: FeedItem,
+    modifier: Modifier = Modifier,
+    showRepost: Boolean = true
+) {
     val uriHandler = LocalContextualUriHandler.current
 
     val formattedDate = remember(feedItem) { getPlatform().formatFeedItemDate(feedItem.published) }
+    val link = feedItem.link
 
     Card(modifier = modifier
         .fillMaxWidth()
-        .clickable { uriHandler.openPostUri(feedItem.link, feedItem.platform) }
+        .apply { if (link != null) clickable { uriHandler.openPostUri(link, feedItem.platform) } }
     ) {
         Row(
             modifier = Modifier.padding(
-                start = 8.dp,
-                top = if (index == 0) 16.dp else 8.dp,
+                start = 16.dp,
+                top = 8.dp,
                 end = 8.dp,
-                bottom = 8.dp
+                bottom = 16.dp
             )
         ) {
             AsyncImage(
@@ -258,6 +268,13 @@ private fun FeedItemRow(feedItem: FeedItem, index: Int, modifier: Modifier = Mod
                     Text(text, inlineContent = content, fontWeight = FontWeight.Bold)
                 }
                 FeedItemContentText(feedItem)
+                if (feedItem.repost != null && showRepost) {
+                    FeedItemRow(
+                        feedItem.repost,
+                        modifier = Modifier.padding(8.dp),
+                        showRepost = false // to avoid deep nesting
+                    )
+                }
                 Text(
                     text = formattedDate,
                     color = Color.Gray,

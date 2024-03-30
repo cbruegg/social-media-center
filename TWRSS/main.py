@@ -117,7 +117,8 @@ def tweet_to_feed_item(tweet: twikit.Tweet):
         'id': tweet.id,
         'published': parser.parse(tweet.created_at),
         'link': link,
-        'platform': 'Twitter'
+        'platform': 'Twitter',
+        'repost': None
     }
 
 

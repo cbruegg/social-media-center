@@ -31,6 +31,8 @@ import util.LocalContextualUriHandler
 @OptIn(ExperimentalTextApi::class)
 @Composable
 fun FeedItemContentText(feedItem: FeedItem) {
+    if (feedItem.text.isEmpty()) return // nothing to display
+
     val uriHandler = LocalContextualUriHandler.current
     val linkColor = MaterialTheme.colors.primary
 
@@ -59,11 +61,13 @@ fun FeedItemContentText(feedItem: FeedItem) {
     }
 
     ClickableEmojiText(text = annotatedString) { url ->
-        println(feedItem)
+        println("Clicked $feedItem")
         if (!url.isNullOrEmpty())
             uriHandler.openUri(url)
-        else
+        else if (feedItem.link != null)
             uriHandler.openPostUri(feedItem.link, feedItem.platform)
+        else
+            println("No clickable content, ignoring click")
     }
 }
 

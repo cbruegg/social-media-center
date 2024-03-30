@@ -29,8 +29,9 @@ data class FeedItem(
     val authorImageUrl: String?,
     val id: String,
     val published: Instant,
-    val link: String,
-    val platform: PlatformId
+    val link: String?,
+    val platform: PlatformId,
+    val repost: FeedItem?
 )
 
 @Serializable
