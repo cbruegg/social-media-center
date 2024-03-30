@@ -47,7 +47,11 @@ private class IOSUriHandler(
         if (inAppBrowserOpener != null) {
             inAppBrowserOpener.openUriWithinInAppBrowser(uri)
         } else {
-            UIApplication.sharedApplication.openURL(NSURL(string = uri), emptyMap<Any?, Any>(), null)
+            UIApplication.sharedApplication.openURL(
+                NSURL(string = uri),
+                emptyMap<Any?, Any>(),
+                null
+            )
         }
     }
 
@@ -56,11 +60,7 @@ private class IOSUriHandler(
         if (!UIApplication.sharedApplication.canOpenURL(nsUrl)) return false
 
         println("Opening URL: ${nsUrl.absoluteString}")
-        if (inAppBrowserOpener != null) {
-            inAppBrowserOpener.openUriWithinInAppBrowser(uri)
-        } else {
-            UIApplication.sharedApplication.openURL(nsUrl, emptyMap<Any?, Any>(), null)
-        }
+        UIApplication.sharedApplication.openURL(nsUrl, emptyMap<Any?, Any>(), null)
         return true
     }
 
