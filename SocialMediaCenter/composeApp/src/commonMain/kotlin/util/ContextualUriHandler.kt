@@ -13,12 +13,17 @@ val LocalContextualUriHandler = staticCompositionLocalOf<ContextualUriHandler> {
     error("ContextualUriHandler is missing!")
 }
 
-fun UriHandler.toContextualUriHandler(): ContextualUriHandler = object : ContextualUriHandler {
-    override fun openPostUri(uri: String, platformOfPost: PlatformId) {
-        this@toContextualUriHandler.openUri(uri)
-    }
+fun UriHandler.toContextualUriHandler(inAppBrowserOpener: InAppBrowserOpener?): ContextualUriHandler =
+    object : ContextualUriHandler {
+        override fun openPostUri(uri: String, platformOfPost: PlatformId) {
+            this@toContextualUriHandler.openUri(uri)
+        }
 
-    override fun openUri(uri: String) {
-        this@toContextualUriHandler.openUri(uri)
+        override fun openUri(uri: String) {
+            if (inAppBrowserOpener != null) {
+                inAppBrowserOpener.openUriWithinInAppBrowser(uri)
+            } else {
+                this@toContextualUriHandler.openUri(uri)
+            }
+        }
     }
-}

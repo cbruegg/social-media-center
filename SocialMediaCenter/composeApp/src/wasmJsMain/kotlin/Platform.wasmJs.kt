@@ -4,6 +4,7 @@ import androidx.compose.ui.platform.UriHandler
 import io.ktor.http.URLBuilder
 import io.ktor.http.appendEncodedPathSegments
 import kotlinx.datetime.Instant
+import util.InAppBrowserOpener
 
 class WasmPlatform : Platform {
     override val isCorsRestricted: Boolean = true
@@ -22,6 +23,7 @@ class WasmPlatform : Platform {
     override fun createUriHandler(
         clipboardManager: ClipboardManager,
         defaultUriHandler: UriHandler,
+        inAppBrowserOpener: InAppBrowserOpener?,
         socialMediaCenterBaseUrl: String,
     ) = WebUriHandler(defaultUriHandler, socialMediaCenterBaseUrl)
 }

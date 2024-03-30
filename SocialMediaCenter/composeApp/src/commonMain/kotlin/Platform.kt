@@ -3,11 +3,13 @@ import androidx.compose.ui.platform.UriHandler
 import kotlinx.datetime.Instant
 import persistence.Persistence
 import util.ContextualUriHandler
+import util.InAppBrowserOpener
 
 interface Platform {
     fun createUriHandler(
         clipboardManager: ClipboardManager,
         defaultUriHandler: UriHandler,
+        inAppBrowserOpener: InAppBrowserOpener?,
         socialMediaCenterBaseUrl: String
     ): ContextualUriHandler? =
         null // TODO Implement for Android

@@ -60,6 +60,7 @@ import org.kodein.emoji.compose.LocalEmojiDownloader
 import org.kodein.emoji.compose.WithPlatformEmoji
 import persistence.rememberForeverLazyListState
 import util.LocalContextualUriHandler
+import util.LocalInAppBrowserOpener
 import util.toContextualUriHandler
 import kotlin.time.Duration.Companion.minutes
 
@@ -82,12 +83,14 @@ fun App() {
         // TODO Move logic to viewmodel
         val clipboardManager = LocalClipboardManager.current
         val localUriHandler = LocalUriHandler.current
-        val uriHandler = remember(clipboardManager, localUriHandler) {
+        val inAppBrowserOpener = LocalInAppBrowserOpener.current
+        val uriHandler = remember(clipboardManager, localUriHandler, inAppBrowserOpener) {
             getPlatform().createUriHandler(
                 clipboardManager,
                 localUriHandler,
-                socialMediaCenterBaseUrl
-            ) ?: localUriHandler.toContextualUriHandler()
+                inAppBrowserOpener,
+                socialMediaCenterBaseUrl,
+            ) ?: localUriHandler.toContextualUriHandler(inAppBrowserOpener)
         }
 
         CompositionLocalProvider(

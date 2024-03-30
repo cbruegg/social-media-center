@@ -14,6 +14,7 @@ import platform.Foundation.NSURL
 import platform.Foundation.NSUserDefaults
 import platform.UIKit.UIApplication
 import util.ContextualUriHandler
+import util.InAppBrowserOpener
 import util.isNumeric
 
 object IOSPlatform : Platform {
@@ -31,15 +32,23 @@ object IOSPlatform : Platform {
     override fun createUriHandler(
         clipboardManager: ClipboardManager,
         defaultUriHandler: UriHandler,
+        inAppBrowserOpener: InAppBrowserOpener?,
         socialMediaCenterBaseUrl: String
     ): ContextualUriHandler =
-        IOSUriHandler(clipboardManager)
+        IOSUriHandler(clipboardManager, inAppBrowserOpener)
 }
 
-private class IOSUriHandler(private val clipboardManager: ClipboardManager) : ContextualUriHandler {
+private class IOSUriHandler(
+    private val clipboardManager: ClipboardManager,
+    private val inAppBrowserOpener: InAppBrowserOpener?
+) : ContextualUriHandler {
     override fun openUri(uri: String) {
         println("Opening with standard handler: $uri")
-        UIApplication.sharedApplication.openURL(NSURL(string = uri), emptyMap<Any?, Any>(), null)
+        if (inAppBrowserOpener != null) {
+            inAppBrowserOpener.openUriWithinInAppBrowser(uri)
+        } else {
+            UIApplication.sharedApplication.openURL(NSURL(string = uri), emptyMap<Any?, Any>(), null)
+        }
     }
 
     private fun tryOpenUri(uri: String): Boolean {
@@ -47,7 +56,11 @@ private class IOSUriHandler(private val clipboardManager: ClipboardManager) : Co
         if (!UIApplication.sharedApplication.canOpenURL(nsUrl)) return false
 
         println("Opening URL: ${nsUrl.absoluteString}")
-        UIApplication.sharedApplication.openURL(nsUrl, emptyMap<Any?, Any>(), null)
+        if (inAppBrowserOpener != null) {
+            inAppBrowserOpener.openUriWithinInAppBrowser(uri)
+        } else {
+            UIApplication.sharedApplication.openURL(nsUrl, emptyMap<Any?, Any>(), null)
+        }
         return true
     }
 
