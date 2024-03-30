@@ -247,7 +247,7 @@ private fun FeedItemRow(
             modifier = Modifier.padding(
                 start = 16.dp,
                 top = 8.dp,
-                end = 8.dp,
+                end = 16.dp,
                 bottom = 16.dp
             )
         ) {
