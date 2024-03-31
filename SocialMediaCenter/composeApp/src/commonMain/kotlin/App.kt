@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.Card
@@ -26,6 +25,7 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
+import androidx.compose.material.TextField
 import androidx.compose.material.darkColors
 import androidx.compose.material.lightColors
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
@@ -48,14 +48,18 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
 import components.FeedItemContentText
 import components.LifecycleHandler
+import io.ktor.client.HttpClient
 import io.ktor.http.encodeURLParameter
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.kodein.emoji.compose.EmojiUrl
 import org.kodein.emoji.compose.LocalEmojiDownloader
 import org.kodein.emoji.compose.WithPlatformEmoji
 import persistence.rememberForeverLazyListState
@@ -81,6 +85,7 @@ fun App() {
         colors = if (isSystemInDarkTheme()) darkColors() else lightColors()
     ) {
         // TODO Move logic to viewmodel
+        // TODO Use Dagger for DI
         val clipboardManager = LocalClipboardManager.current
         val localUriHandler = LocalUriHandler.current
         val inAppBrowserOpener = LocalInAppBrowserOpener.current
@@ -92,10 +97,14 @@ fun App() {
                 socialMediaCenterBaseUrl,
             ) ?: localUriHandler.toContextualUriHandler(inAppBrowserOpener)
         }
+        val authTokenRepository = remember { createAuthTokenRepository() }
+        val httpClient = remember(authTokenRepository) { createHttpClient(authTokenRepository) }
+        val api = remember(httpClient) { createApi(httpClient) }
+        val downloadEmoji = remember(httpClient) { createEmojiDownloader(httpClient) }
 
         CompositionLocalProvider(
             LocalContextualUriHandler provides uriHandler,
-            LocalEmojiDownloader provides ::downloadEmoji
+            LocalEmojiDownloader provides downloadEmoji
         ) {
             val scope = rememberCoroutineScope()
             var feedItems: List<FeedItem>? by remember { mutableStateOf(null) }
@@ -103,17 +112,23 @@ fun App() {
             var lastLoadFailure: Throwable? by remember { mutableStateOf(null) }
             var isLoading by remember { mutableStateOf(false) }
             var shouldRefreshPeriodically by remember { mutableStateOf(true) }
+            var showAuthDialog by remember { mutableStateOf(authTokenRepository.token == null) }
             val refresh = suspend {
                 if (!isLoading) {
                     println("Refreshing...")
                     isLoading = true
-                    val result = api.getFeed()
-                    feedItems = result.getOrNull() ?: feedItems
-                    lastLoadFailure = result.exceptionOrNull()
+                    when (val feedResult = api.getFeed()) {
+                        is ApiResponse.Ok -> feedItems = feedResult.body
+                        is ApiResponse.Unauthorized -> showAuthDialog = true
+                        is ApiResponse.ErrorStatus -> lastLoadFailure = feedResult
+                        is ApiResponse.CaughtException -> lastLoadFailure = feedResult.exception
+                    }
                     unauthenticatedMastodonAccounts =
-                        api.getUnauthenticatedMastodonAccounts().getOrDefault(
-                            emptyList()
-                        )
+                        when (val unauthenticatedMastodonAccountsResult =
+                            api.getUnauthenticatedMastodonAccounts()) {
+                            is ApiResponse.Ok -> unauthenticatedMastodonAccountsResult.body
+                            else -> emptyList()
+                        }
                     isLoading = false
                 }
             }
@@ -126,7 +141,7 @@ fun App() {
                 launch {
                     while (isActive) {
                         delay(1.minutes)
-                        if (shouldRefreshPeriodically) {
+                        if (shouldRefreshPeriodically && !showAuthDialog) {
                             refresh()
                         } else {
                             println("Skipping refresh")
@@ -153,6 +168,39 @@ fun App() {
                     },
                     confirmButton = {}
                 )
+            }
+
+            // TODO Break up this huge Composable
+            if (showAuthDialog) {
+                Dialog(
+                    onDismissRequest = {}, properties = DialogProperties(
+                        dismissOnBackPress = false,
+                        dismissOnClickOutside = false
+                    )
+                ) {
+                    var tokenInput by remember { mutableStateOf(authTokenRepository.token ?: "") }
+
+                    Card {
+                        Column(Modifier.padding(16.dp)) {
+                            Text(
+                                "Please enter your authentication token.",
+                                modifier = Modifier.padding(8.dp)
+                            )
+                            TextField(
+                                value = tokenInput,
+                                onValueChange = { tokenInput = it },
+                                label = { Text("Token") }
+                            )
+                            TextButton(onClick = {
+                                authTokenRepository.updateToken(tokenInput)
+                                scope.launch { refresh() }
+                                showAuthDialog = false
+                            }) {
+                                Text("Save")
+                            }
+                        }
+                    }
+                }
             }
 
             Surface {
@@ -216,16 +264,12 @@ fun App() {
 @Composable
 private fun rememberForeverFeedItemsListState(feedItems: List<FeedItem>): LazyListState {
     val persistence = getPlatform().persistence
-    return if (persistence != null) {
-        rememberForeverLazyListState(
-            "appScrollState",
-            persistence,
-            idOfItemAt = { feedItems[it].id },
-            indexOfItem = { id -> feedItems.indexOfFirst { it.id == id }.takeIf { it != -1 } }
-        )
-    } else {
-        rememberLazyListState()
-    }
+    return rememberForeverLazyListState(
+        "appScrollState",
+        persistence,
+        idOfItemAt = { feedItems[it].id },
+        indexOfItem = { id -> feedItems.indexOfFirst { it.id == id }.takeIf { it != -1 } }
+    )
 }
 
 @Composable
@@ -241,7 +285,14 @@ private fun FeedItemRow(
 
     Card(modifier = modifier
         .fillMaxWidth()
-        .apply { if (link != null) clickable { uriHandler.openPostUri(link, feedItem.platform) } }
+        .apply {
+            if (link != null) clickable {
+                uriHandler.openPostUri(
+                    link,
+                    feedItem.platform
+                )
+            }
+        }
     ) {
         Row(
             modifier = Modifier.padding(
@@ -287,3 +338,6 @@ private fun FeedItemRow(
         }
     }
 }
+
+private fun createEmojiDownloader(httpClient: HttpClient): suspend (EmojiUrl) -> ByteArray =
+    { emojiUrl -> downloadEmoji(httpClient, emojiUrl) }

@@ -3,10 +3,12 @@ package com.cbruegg.socialmediaserver
 import com.cbruegg.socialmediaserver.retrieval.Twitter
 import com.cbruegg.socialmediaserver.retrieval.mastodon.Mastodon
 import com.cbruegg.socialmediaserver.retrieval.mastodon.MastodonCredentialsRepository
+import com.cbruegg.socialmediaserver.retrieval.security.Auth
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
@@ -34,12 +36,11 @@ suspend fun main(args: Array<String>): Unit = coroutineScope {
     val mastodonCredentialsRepository = MastodonCredentialsRepository(File(dataLocation, "credentials_mastodon.json"))
     val sources = loadSources(dataLocation)
 
-    if (sources.mastodonFollowings.isNotEmpty()) {
-        // TODO Check if all servers are authorized in config already, otherwise show in app UI link to authorize
-    }
-
     val feedMonitor = createFeedMonitor(twitterScriptLocation, dataLocation, sources, mastodonCredentialsRepository)
     feedMonitor.start(scope = this)
+
+    val auth = Auth(File(dataLocation))
+    auth.initialize()
 
     val httpClient = HttpClient(CIO)
 
@@ -52,6 +53,17 @@ suspend fun main(args: Array<String>): Unit = coroutineScope {
         }
         install(Sessions) {
             cookie<MastodonAuthSession>("mastodon_auth_session")
+        }
+        install(Authentication) {
+            bearer {
+                authenticate { tokenCredential ->
+                    if (auth.isValidToken(tokenCredential.token)) {
+                        UserIdPrincipal("admin")
+                    } else {
+                        null
+                    }
+                }
+            }
         }
 
         routing {

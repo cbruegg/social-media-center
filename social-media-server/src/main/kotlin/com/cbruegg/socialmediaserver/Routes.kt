@@ -9,6 +9,7 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.*
 import io.ktor.server.http.content.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -28,28 +29,66 @@ fun Routing.installRoutes(
     mastodonCredentialsRepository: MastodonCredentialsRepository,
     socialMediaCenterWebLocation: File
 ) {
-    get("/json") {
-        val isCorsRestricted = context.request.queryParameters["isCorsRestricted"] == "true"
-        val mergedFeed = feedMonitor.getMergedFeed(isCorsRestricted)
-        call.respond(mergedFeed)
-    }
-    get("/proxy") {
-        val urlToProxy = context.request.queryParameters["url"]
-        if (urlToProxy == null || !shouldProxyUrlForCors(urlToProxy)) {
-            call.respond(HttpStatusCode.BadRequest)
-            return@get
+    authenticate {
+        get("/json") {
+            val isCorsRestricted = context.request.queryParameters["isCorsRestricted"] == "true"
+            val mergedFeed = feedMonitor.getMergedFeed(isCorsRestricted)
+            call.respond(mergedFeed)
         }
+        get("/proxy") {
+            val urlToProxy = context.request.queryParameters["url"]
+            if (urlToProxy == null || !shouldProxyUrlForCors(urlToProxy)) {
+                call.respond(HttpStatusCode.BadRequest)
+                return@get
+            }
 
-        val upstreamResponse = httpClient.get(urlToProxy)
-        val upstreamResponseChannel = upstreamResponse.bodyAsChannel()
-        call.respondBytesWriter(
-            contentType = upstreamResponse.contentType(),
-            status = upstreamResponse.status,
-            contentLength = upstreamResponse.contentLength()
-        ) {
-            upstreamResponseChannel.copyAndClose(this)
+            val upstreamResponse = httpClient.get(urlToProxy)
+            val upstreamResponseChannel = upstreamResponse.bodyAsChannel()
+            call.respondBytesWriter(
+                contentType = upstreamResponse.contentType(),
+                status = upstreamResponse.status,
+                contentLength = upstreamResponse.contentLength()
+            ) {
+                upstreamResponseChannel.copyAndClose(this)
+            }
+        }
+        get("/authorize/mastodon/start") {
+            val instanceName = context.request.queryParameters["instanceName"]
+            val socialMediaCenterBaseUrl =
+                context.request.queryParameters["socialMediaCenterBaseUrl"]?.decodeURLQueryComponent()
+            if (instanceName == null || socialMediaCenterBaseUrl == null) {
+                call.respond(HttpStatusCode.BadRequest)
+                return@get
+            }
+
+            call.sessions.set(MastodonAuthSession(instanceName, socialMediaCenterBaseUrl))
+
+            val client = MastodonClient.Builder(instanceName).build()
+            val appRegistration = client.apps.getOrCreateSocialMediaCenterApp(
+                instanceName,
+                mastodonCredentialsRepository,
+                getMastodonAuthRedirectUri(socialMediaCenterBaseUrl)
+            )
+
+            val clientId = appRegistration.clientId
+
+            if (clientId == null) {
+                call.respond(HttpStatusCode.BadGateway, "Invalid client configuration")
+                return@get
+            }
+
+            val oauthUrl = client.oauth.getOAuthUrl(
+                clientId = clientId,
+                redirectUri = getMastodonAuthRedirectUri(socialMediaCenterBaseUrl),
+                scope = mastodonAppScope
+            )
+            call.respondRedirect(oauthUrl)
+        }
+        get("/unauthenticated-mastodon-accounts") {
+            call.respond(mastodonCredentialsRepository.findMissingCredentials(sources))
         }
     }
+
     get("/mastodon-status") {
         // TODO Maybe we don't need this anymore? Does response from Mastodon perhaps include URL to status on app user server?
         val statusUrlOnAuthorServer: String? = context.request.queryParameters["statusUrl"]
@@ -68,40 +107,8 @@ fun Routing.installRoutes(
 
         val statusOnUserServerUrl = "$mastodonServerOfUser/authorize_interaction?uri=$statusUrlOnAuthorServer"
         call.respondRedirect(statusOnUserServerUrl)
-
     }
-    get("/authorize/mastodon/start") {
-        val instanceName = context.request.queryParameters["instanceName"]
-        val socialMediaCenterBaseUrl =
-            context.request.queryParameters["socialMediaCenterBaseUrl"]?.decodeURLQueryComponent()
-        if (instanceName == null || socialMediaCenterBaseUrl == null) {
-            call.respond(HttpStatusCode.BadRequest)
-            return@get
-        }
 
-        call.sessions.set(MastodonAuthSession(instanceName, socialMediaCenterBaseUrl))
-
-        val client = MastodonClient.Builder(instanceName).build()
-        val appRegistration = client.apps.getOrCreateSocialMediaCenterApp(
-            instanceName,
-            mastodonCredentialsRepository,
-            getMastodonAuthRedirectUri(socialMediaCenterBaseUrl)
-        )
-
-        val clientId = appRegistration.clientId
-
-        if (clientId == null) {
-            call.respond(HttpStatusCode.BadGateway, "Invalid client configuration")
-            return@get
-        }
-
-        val oauthUrl = client.oauth.getOAuthUrl(
-            clientId = clientId,
-            redirectUri = getMastodonAuthRedirectUri(socialMediaCenterBaseUrl),
-            scope = mastodonAppScope
-        )
-        call.respondRedirect(oauthUrl)
-    }
     get(MASTODON_COMPLETE_AUTH_URL) {
         val authCode = context.request.queryParameters["code"]
         val authSession = context.sessions.get<MastodonAuthSession>()
@@ -147,9 +154,6 @@ fun Routing.installRoutes(
         runCatching { feedMonitor.update(setOf(PlatformId.Mastodon)) }
 
         call.respondRedirect("/")
-    }
-    get("/unauthenticated-mastodon-accounts") {
-        call.respond(mastodonCredentialsRepository.findMissingCredentials(sources))
     }
     staticFiles("/", socialMediaCenterWebLocation)
 }

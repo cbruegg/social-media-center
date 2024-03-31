@@ -14,7 +14,7 @@ interface Platform {
     ): ContextualUriHandler? =
         null // TODO Implement for Android
 
-    val persistence: Persistence? get() = null
+    val persistence: Persistence
     val isCorsRestricted: Boolean get() = false
     val nativelySupportsEmojiRendering: Boolean get() = true
     fun formatFeedItemDate(instant: Instant): String

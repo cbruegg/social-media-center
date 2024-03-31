@@ -7,14 +7,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.saveable.rememberSaveable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlin.time.Duration.Companion.seconds
-
-interface Persistence {
-    fun <T : Any> save(key: String, value: T, serializer: KSerializer<T>)
-    fun <T : Any> load(key: String, serializer: KSerializer<T>): T?
-}
 
 /**
  * Save scroll state for all time.
