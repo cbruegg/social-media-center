@@ -162,7 +162,7 @@ fun App() {
 
             if (showLastLoadFailure) {
                 AlertDialog(
-                    text = { Text(lastLoadFailure?.message ?: "No error!") },
+                    text = { Text(lastLoadFailure?.message ?: lastLoadFailure?.toString() ?: "No error!") },
                     onDismissRequest = { showLastLoadFailure = false },
                     dismissButton = {
                         TextButton(onClick = {
