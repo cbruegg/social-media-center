@@ -1,5 +1,6 @@
 package security
 
+import io.ktor.http.HttpHeaders
 import kotlinx.serialization.builtins.serializer
 import persistence.Persistence
 
@@ -14,3 +15,6 @@ class AuthTokenRepository(private val persistence: Persistence) {
         persistence.save(KEY, value, String.serializer())
     }
 }
+
+val AuthTokenRepository.tokenAsHttpHeader: Pair<String, String>?
+    get() = token?.let { HttpHeaders.Authorization to "Bearer $it" }

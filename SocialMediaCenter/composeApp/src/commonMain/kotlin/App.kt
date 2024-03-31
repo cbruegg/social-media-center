@@ -1,4 +1,3 @@
-
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -50,7 +49,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import coil3.annotation.ExperimentalCoilApi
 import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.network.NetworkHeaders
+import coil3.network.httpHeaders
+import coil3.request.ImageRequest
 import components.FeedItemContentText
 import components.LifecycleHandler
 import io.ktor.client.HttpClient
@@ -63,6 +67,7 @@ import org.kodein.emoji.compose.EmojiUrl
 import org.kodein.emoji.compose.LocalEmojiDownloader
 import org.kodein.emoji.compose.WithPlatformEmoji
 import persistence.rememberForeverLazyListState
+import security.tokenAsHttpHeader
 import util.LocalContextualUriHandler
 import util.LocalInAppBrowserOpener
 import util.toContextualUriHandler
@@ -122,6 +127,7 @@ fun App() {
                             feedItems = feedResult.body
                             lastLoadFailure = null
                         }
+
                         is ApiResponse.Unauthorized -> showAuthDialog = true
                         is ApiResponse.ErrorStatus -> lastLoadFailure = feedResult
                         is ApiResponse.CaughtException -> lastLoadFailure = feedResult.exception
@@ -162,7 +168,11 @@ fun App() {
 
             if (showLastLoadFailure) {
                 AlertDialog(
-                    text = { Text(lastLoadFailure?.message ?: lastLoadFailure?.toString() ?: "No error!") },
+                    text = {
+                        Text(
+                            lastLoadFailure?.message ?: lastLoadFailure?.toString() ?: "No error!"
+                        )
+                    },
                     onDismissRequest = { showLastLoadFailure = false },
                     dismissButton = {
                         TextButton(onClick = {
@@ -246,6 +256,7 @@ fun App() {
                                     itemContent = {
                                         FeedItemRow(
                                             feedItems[it],
+                                            tokenAsHttpHeader = authTokenRepository.tokenAsHttpHeader,
                                             Modifier.padding(top = if (it == 0) 8.dp else 0.dp)
                                         )
                                     }
@@ -275,9 +286,11 @@ private fun rememberForeverFeedItemsListState(feedItems: List<FeedItem>): LazyLi
     )
 }
 
+@OptIn(ExperimentalCoilApi::class)
 @Composable
 private fun FeedItemRow(
     feedItem: FeedItem,
+    tokenAsHttpHeader: Pair<String, String>?,
     modifier: Modifier = Modifier,
     showRepost: Boolean = true
 ) {
@@ -305,13 +318,19 @@ private fun FeedItemRow(
                 bottom = 16.dp
             )
         ) {
+            val request = ImageRequest.Builder(LocalPlatformContext.current)
+                .data(feedItem.authorImageUrl?.let {
+                    getPlatform().corsProxiedUrlToAbsoluteUrl(socialMediaCenterBaseUrl, it)
+                })
+                .also {
+                    if (tokenAsHttpHeader != null) {
+                        val (key, value) = tokenAsHttpHeader
+                        it.httpHeaders(NetworkHeaders.Builder().add(key, value).build())
+                    }
+                }
+                .build()
             AsyncImage(
-                model = feedItem.authorImageUrl?.let {
-                    getPlatform().corsProxiedUrlToAbsoluteUrl(
-                        socialMediaCenterBaseUrl,
-                        it
-                    )
-                },
+                model = request,
                 contentDescription = feedItem.author,
                 modifier = Modifier
                     .padding(8.dp)
@@ -328,6 +347,7 @@ private fun FeedItemRow(
                 if (feedItem.repost != null && showRepost) {
                     FeedItemRow(
                         feedItem.repost,
+                        tokenAsHttpHeader,
                         modifier = Modifier.padding(8.dp),
                         showRepost = false // to avoid deep nesting
                     )

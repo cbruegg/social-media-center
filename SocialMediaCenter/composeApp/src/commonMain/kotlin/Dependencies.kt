@@ -1,3 +1,4 @@
+
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpRequestRetry
@@ -6,12 +7,12 @@ import io.ktor.client.plugins.auth.AuthProvider
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.get
-import io.ktor.http.HttpHeaders
 import io.ktor.http.auth.HttpAuthHeader
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import org.kodein.emoji.compose.EmojiUrl
 import security.AuthTokenRepository
+import security.tokenAsHttpHeader
 
 fun createHttpClient(authTokenRepository: AuthTokenRepository) = HttpClient {
     install(Auth) {
@@ -27,10 +28,11 @@ fun createHttpClient(authTokenRepository: AuthTokenRepository) = HttpClient {
                 request: HttpRequestBuilder,
                 authHeader: HttpAuthHeader?
             ) {
-                val token = authTokenRepository.token
-                if (token != null) {
-                    println("token=$token")
-                    request.headers[HttpHeaders.Authorization] = "Bearer $token"
+                val tokenAsHttpHeader = authTokenRepository.tokenAsHttpHeader
+                if (tokenAsHttpHeader != null) {
+                    val (key, headerValue) = tokenAsHttpHeader
+                    println("headerValue=$headerValue")
+                    request.headers[key] = headerValue
                 }
             }
 
