@@ -96,8 +96,3 @@ private suspend fun loadSources(dataLocation: String): Sources {
         Json.decodeFromString<Sources>(Path(dataLocation, "sources.json").readText())
     }
 }
-
-fun shouldProxyUrlForCors(url: String): Boolean {
-    return "twimg.com" in url
-}
-

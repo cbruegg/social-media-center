@@ -64,7 +64,7 @@ class FeedMonitor(
             .flatMap { wrappedFeedItems -> wrappedFeedItems.asSequence() }
             .map { it.feedItem }
             .map {
-                if (isCorsRestricted && it.authorImageUrl != null && shouldProxyUrlForCors(it.authorImageUrl))
+                if (isCorsRestricted && it.authorImageUrl != null)
                     it.copy(authorImageUrl = it.authorImageUrl.proxiedUrl())
                 else
                     it

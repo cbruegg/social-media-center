@@ -37,7 +37,7 @@ fun Routing.installRoutes(
         }
         get("/proxy") {
             val urlToProxy = context.request.queryParameters["url"]
-            if (urlToProxy == null || !shouldProxyUrlForCors(urlToProxy)) {
+            if (urlToProxy == null) {
                 call.respond(HttpStatusCode.BadRequest)
                 return@get
             }
