@@ -14,7 +14,7 @@ class Auth(dataDir: File) {
         withContext(Dispatchers.IO) {
             if (tokenFile.exists()) {
                 println("tokenFile $tokenFile exists")
-                tokenStr = tokenFile.readText()
+                tokenStr = tokenFile.readText().trim()
                 println("tokenFile contains tokenStr=$tokenStr")
             } else {
                 val tokenBytes = ByteArray(64).also { SecureRandom.getInstanceStrong().nextBytes(it) }
@@ -27,6 +27,6 @@ class Auth(dataDir: File) {
     }
 
     fun isValidToken(token: String): Boolean {
-        return token == tokenStr
+        return token.trim() == tokenStr
     }
 }
