@@ -1,7 +1,8 @@
 plugins {
-    kotlin("jvm") version "1.9.22"
-    kotlin("plugin.serialization") version "1.9.22"
-    id("io.ktor.plugin") version "2.3.8"
+    kotlin("jvm")
+//    alias(libs.plugins.kotlinMultiplatform)
+    alias(libs.plugins.kotlinxSerialization)
+    id("io.ktor.plugin") version "2.3.8" // TODO Move versions to version catalog
 }
 
 group = "com.cbruegg"

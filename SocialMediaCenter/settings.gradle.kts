@@ -20,4 +20,12 @@ dependencyResolutionManagement {
     }
 }
 
-include(":composeApp")
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "0.5.0"
+}
+
+if (startParameter.projectProperties.getOrDefault("excludeComposeApp", "") != "true") {
+    // Condition is needed to avoid trying to configure Kotlin/Native in the Linux aarch64 builder
+    include(":composeApp")
+}
+include(":server")
