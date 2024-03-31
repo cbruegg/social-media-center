@@ -6,6 +6,7 @@ import com.cbruegg.socialmediaserver.retrieval.mastodon.MastodonCredentialsRepos
 import com.cbruegg.socialmediaserver.retrieval.security.Auth
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
+import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -50,6 +51,8 @@ suspend fun main(args: Array<String>): Unit = coroutineScope {
         }
         install(CORS) {
             anyHost()
+            allowMethod(HttpMethod.Options)
+            allowHeader(HttpHeaders.Authorization)
         }
         install(Sessions) {
             cookie<MastodonAuthSession>("mastodon_auth_session")
