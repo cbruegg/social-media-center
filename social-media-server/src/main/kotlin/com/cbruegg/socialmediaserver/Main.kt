@@ -57,9 +57,12 @@ suspend fun main(args: Array<String>): Unit = coroutineScope {
         install(Authentication) {
             bearer {
                 authenticate { tokenCredential ->
+                    println("Received token=$tokenCredential")
                     if (auth.isValidToken(tokenCredential.token)) {
+                        println("Token is valid")
                         UserIdPrincipal("admin")
                     } else {
+                        println("Token is invalid")
                         null
                     }
                 }

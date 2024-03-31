@@ -27,10 +27,10 @@ fun createHttpClient(authTokenRepository: AuthTokenRepository) = HttpClient {
                 request: HttpRequestBuilder,
                 authHeader: HttpAuthHeader?
             ) {
-
                 val token = authTokenRepository.token
                 if (token != null) {
-                    request.headers.append(HttpHeaders.Authorization, "Bearer $token")
+                    println("token=$token")
+                    request.headers[HttpHeaders.Authorization] = "Bearer $token"
                 }
             }
 
