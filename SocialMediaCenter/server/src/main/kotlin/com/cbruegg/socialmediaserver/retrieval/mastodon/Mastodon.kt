@@ -13,7 +13,7 @@ import java.time.Instant
 @Serializable
 data class MastodonUser(val server: String, val username: String) {
     init {
-        check(server.startsWith("http")) { "Invalid configratuon, server should start with http(s)://" }
+        check(server.startsWith("http")) { "Invalid configuration, server should start with http(s)://" }
     }
 }
 
