@@ -103,9 +103,8 @@ fun App() {
             ) ?: localUriHandler.toContextualUriHandler(inAppBrowserOpener)
         }
         val authTokenRepository = remember { createAuthTokenRepository() }
-        val httpClient = remember(authTokenRepository) { createHttpClient(authTokenRepository) }
-        val api = remember(httpClient) { createApi(httpClient) }
-        val downloadEmoji = remember(httpClient) { createEmojiDownloader(httpClient) }
+        val api = remember(authTokenRepository) { createApi(createApiHttpClient(authTokenRepository)) }
+        val downloadEmoji = remember() { createEmojiDownloader(createGenericHttpClient()) }
 
         CompositionLocalProvider(
             LocalContextualUriHandler provides uriHandler,

@@ -14,7 +14,7 @@ import org.kodein.emoji.compose.EmojiUrl
 import security.AuthTokenRepository
 import security.tokenAsHttpHeader
 
-fun createHttpClient(authTokenRepository: AuthTokenRepository) = HttpClient {
+fun createApiHttpClient(authTokenRepository: AuthTokenRepository) = HttpClient {
     install(Auth) {
         providers += object : AuthProvider {
             @Deprecated(
@@ -50,6 +50,10 @@ fun createHttpClient(authTokenRepository: AuthTokenRepository) = HttpClient {
             ignoreUnknownKeys = true
         })
     }
+    install(HttpRequestRetry)
+}
+
+fun createGenericHttpClient() = HttpClient {
     install(HttpRequestRetry)
 }
 
