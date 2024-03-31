@@ -118,7 +118,10 @@ fun App() {
                     println("Refreshing...")
                     isLoading = true
                     when (val feedResult = api.getFeed()) {
-                        is ApiResponse.Ok -> feedItems = feedResult.body
+                        is ApiResponse.Ok -> {
+                            feedItems = feedResult.body
+                            lastLoadFailure = null
+                        }
                         is ApiResponse.Unauthorized -> showAuthDialog = true
                         is ApiResponse.ErrorStatus -> lastLoadFailure = feedResult
                         is ApiResponse.CaughtException -> lastLoadFailure = feedResult.exception
