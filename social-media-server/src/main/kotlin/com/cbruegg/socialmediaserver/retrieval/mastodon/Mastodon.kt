@@ -11,12 +11,16 @@ import social.bigbone.api.entity.Status
 import java.time.Instant
 
 @Serializable
-data class MastodonUser(val server: String, val username: String)
+data class MastodonUser(val server: String, val username: String) {
+    init {
+        check(server.startsWith("http")) { "Invalid configratuon, server should start with http(s)://" }
+    }
+}
 
 val MastodonUser.serverWithoutScheme get() = server.substringAfter("://")
 
 class Mastodon(
-    val followingsOf: List<MastodonUser>,
+    private val followingsOf: List<MastodonUser>,
     private val mastodonCredentialsRepository: MastodonCredentialsRepository
 ) : SocialPlatform {
     override val platformId = PlatformId.Mastodon
@@ -38,7 +42,7 @@ class Mastodon(
             .build()
 
         val result = runCatching { client.timelines.getHomeTimeline(Range(limit = 50)).execute().part }
-            .map { statuses -> statuses.map { it.toFeedItem() } }
+            .map { statuses -> statuses.map { it.toFeedItem(user.server) } }
 
         result.exceptionOrNull()?.printStackTrace()
         return result.getOrDefault(emptyList())
@@ -46,16 +50,24 @@ class Mastodon(
 
 }
 
-private fun Status.toFeedItem(): FeedItem {
-    val url = url.takeIf { it.isNotEmpty() } ?: uri
+private fun Status.toFeedItem(userServerBaseUrl: String): FeedItem {
+    val id = id.takeIf { it.isNotEmpty() }
+    val account = account
+    val url = if (id != null && account != null) {
+        "$userServerBaseUrl/@${account.acct}/$id"
+    } else if (url.isNotEmpty()) {
+        url
+    } else {
+        uri
+    }
     return FeedItem(
         text = content,
         author = account?.acct?.let { "@$it" } ?: "MISSING_ACCOUNT",
         authorImageUrl = account?.avatarStatic,
-        id = url.takeIf { it.isNotEmpty() } ?: uri,
+        id = id ?: uri,
         published = createdAt.mostPreciseOrFallback(Instant.now()).toKotlinInstant(),
         link = url.takeIf { it.isNotEmpty() },
         platform = PlatformId.Mastodon,
-        repost = reblog?.toFeedItem()
+        repost = reblog?.toFeedItem(userServerBaseUrl)
     )
 }

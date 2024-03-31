@@ -1,6 +1,4 @@
 
-import androidx.compose.ui.platform.ClipboardManager
-import androidx.compose.ui.platform.UriHandler
 import io.ktor.http.URLBuilder
 import io.ktor.http.appendEncodedPathSegments
 import kotlinx.browser.localStorage
@@ -10,7 +8,6 @@ import kotlinx.serialization.json.Json
 import org.w3c.dom.get
 import org.w3c.dom.set
 import persistence.Persistence
-import util.InAppBrowserOpener
 
 class WasmPlatform : Platform {
     override val isCorsRestricted: Boolean = true
@@ -27,13 +24,6 @@ class WasmPlatform : Platform {
             authorImageUrl
         }
     }
-
-    override fun createUriHandler(
-        clipboardManager: ClipboardManager,
-        defaultUriHandler: UriHandler,
-        inAppBrowserOpener: InAppBrowserOpener?,
-        socialMediaCenterBaseUrl: String,
-    ) = WebUriHandler(defaultUriHandler, socialMediaCenterBaseUrl)
 }
 
 private object WasmPersistence : Persistence {

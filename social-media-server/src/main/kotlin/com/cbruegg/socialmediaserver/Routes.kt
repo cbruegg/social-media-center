@@ -89,26 +89,6 @@ fun Routing.installRoutes(
         }
     }
 
-    get("/mastodon-status") {
-        // TODO Maybe we don't need this anymore? Does response from Mastodon perhaps include URL to status on app user server?
-        val statusUrlOnAuthorServer: String? = context.request.queryParameters["statusUrl"]
-        if (statusUrlOnAuthorServer == null) {
-            call.respond(HttpStatusCode.BadRequest)
-            return@get
-        }
-
-        // just pick the first user server:
-        val mastodonServerOfUser = sources.mastodonFollowings.map { it.server }.firstOrNull()
-        if (mastodonServerOfUser == null) {
-            // No Mastodon configured, just redirect to author server
-            call.respondRedirect(statusUrlOnAuthorServer)
-            return@get
-        }
-
-        val statusOnUserServerUrl = "$mastodonServerOfUser/authorize_interaction?uri=$statusUrlOnAuthorServer"
-        call.respondRedirect(statusOnUserServerUrl)
-    }
-
     get(MASTODON_COMPLETE_AUTH_URL) {
         val authCode = context.request.queryParameters["code"]
         val authSession = context.sessions.get<MastodonAuthSession>()
