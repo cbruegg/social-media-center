@@ -1,5 +1,6 @@
 package com.cbruegg.socialmediaserver.retrieval
 
+import io.ktor.http.*
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
@@ -19,7 +20,16 @@ data class FeedItem(
     val link: String?,
     val platform: PlatformId,
     val repost: FeedItem?
-)
+) {
+    fun withProxiedUrl(): FeedItem = copy(
+        authorImageUrl = authorImageUrl?.proxiedUrl(),
+        repost = repost?.withProxiedUrl()
+    )
+}
+
+private fun String.proxiedUrl(): String {
+    return "/proxy?url=${this.encodeURLQueryComponent()}"
+}
 
 interface SocialPlatform {
     val platformId: PlatformId

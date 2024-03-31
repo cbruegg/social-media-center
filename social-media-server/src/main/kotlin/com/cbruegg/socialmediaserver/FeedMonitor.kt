@@ -4,7 +4,6 @@ import com.cbruegg.socialmediaserver.retrieval.FeedItem
 import com.cbruegg.socialmediaserver.retrieval.PlatformId
 import com.cbruegg.socialmediaserver.retrieval.SocialPlatform
 import com.cbruegg.socialmediaserver.retrieval.oldestAcceptedFeedItemInstant
-import io.ktor.http.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -65,7 +64,7 @@ class FeedMonitor(
             .map { it.feedItem }
             .map {
                 if (isCorsRestricted && it.authorImageUrl != null)
-                    it.copy(authorImageUrl = it.authorImageUrl.proxiedUrl())
+                    it.withProxiedUrl()
                 else
                     it
             }
@@ -73,9 +72,7 @@ class FeedMonitor(
     }
 }
 
-private fun String.proxiedUrl(): String {
-    return "/proxy?url=${this.encodeURLQueryComponent()}"
-}
+
 
 private class WrappedFeedItem(val feedItem: FeedItem) {
     override fun equals(other: Any?): Boolean {
