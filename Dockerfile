@@ -9,11 +9,11 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-COPY social-media-server /build/social-media-server
+COPY SocialMediaCenter /build/SocialMediaCenter
 
-WORKDIR /build/social-media-server
-RUN ./gradlew assemble
-RUN unzip /build/social-media-server/build/distributions/social-media-server-1.0-SNAPSHOT.zip
+WORKDIR /build/SocialMediaCenter
+RUN ./gradlew -PexcludeComposeApp=true :server:assemble
+RUN unzip /build/SocialMediaCenter/server/build/distributions/server-1.0-SNAPSHOT.zip
 
 FROM --platform=x86_64 ubuntu:23.10 AS buildWebApp
 # We need to run this on x86_64 as there's no Kotlin/Native compiler for Linux aarch64
@@ -30,7 +30,7 @@ WORKDIR /build/SocialMediaCenter
 RUN ./gradlew wasmJsBrowserDistribution
 
 FROM alpine:3.19.1
-COPY --from=buildServer /build/social-media-server/social-media-server-1.0-SNAPSHOT /app/social-media-server
+COPY --from=buildServer /build/SocialMediaCenter/server-1.0-SNAPSHOT /app/social-media-server
 COPY --from=buildWebApp /build/SocialMediaCenter/composeApp/build/dist/wasmJs/productionExecutable /app/social-media-server/SocialMediaCenterWeb
 COPY TWRSS /app/twrss
 COPY container-entrypoint.sh /app/container-entrypoint.sh
