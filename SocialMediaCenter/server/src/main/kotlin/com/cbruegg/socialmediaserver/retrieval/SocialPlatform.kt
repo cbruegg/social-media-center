@@ -10,7 +10,13 @@ val oldestAcceptedFeedItemInstant get() = Clock.System.now() - 2.days
 
 fun FeedItem.withProxiedUrl(): FeedItem = copy(
     authorImageUrl = authorImageUrl?.proxiedUrl(),
-    repost = repost?.withProxiedUrl()
+    repost = repost?.withProxiedUrl(),
+    mediaAttachments = mediaAttachments.map {
+        it.copy(
+            previewImageUrl = it.previewImageUrl.proxiedUrl(),
+            fullUrl = it.fullUrl.proxiedUrl()
+        )
+    }
 )
 
 private fun String.proxiedUrl(): String {
