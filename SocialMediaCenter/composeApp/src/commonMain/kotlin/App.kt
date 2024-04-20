@@ -1,3 +1,4 @@
+
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -106,7 +107,8 @@ fun App() {
             ) ?: localUriHandler.toContextualUriHandler(inAppBrowserOpener)
         }
         val authTokenRepository = remember { createAuthTokenRepository() }
-        val api = remember(authTokenRepository) { createApi(createApiHttpClient(authTokenRepository)) }
+        val api =
+            remember(authTokenRepository) { createApi(createApiHttpClient(authTokenRepository)) }
         val downloadEmoji = remember() { createEmojiDownloader(createGenericHttpClient()) }
 
         CompositionLocalProvider(
@@ -303,12 +305,11 @@ private fun FeedItemRow(
 
     Card(modifier = modifier
         .fillMaxWidth()
-        .apply {
-            if (link != null) clickable {
-                uriHandler.openPostUri(
-                    link,
-                    feedItem.platform
-                )
+        .let {
+            if (link != null) {
+                it.clickable { uriHandler.openPostUri(link, feedItem.platform) }
+            } else {
+                it
             }
         }
     ) {
