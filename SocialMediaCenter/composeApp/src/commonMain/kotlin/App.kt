@@ -1,3 +1,4 @@
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -22,12 +23,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.Card
 import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.material.TextField
 import androidx.compose.material.darkColors
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.lightColors
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
@@ -61,6 +65,8 @@ import coil3.network.httpHeaders
 import coil3.request.ImageRequest
 import com.cbruegg.socialmediaserver.shared.FeedItem
 import com.cbruegg.socialmediaserver.shared.MastodonUser
+import com.cbruegg.socialmediaserver.shared.MediaAttachment
+import com.cbruegg.socialmediaserver.shared.MediaType
 import com.cbruegg.socialmediaserver.shared.serverWithoutScheme
 import com.hoc081098.kmp.viewmodel.CreationExtras
 import com.hoc081098.kmp.viewmodel.compose.kmpViewModel
@@ -377,30 +383,49 @@ private fun FeedItemRow(
 @Composable
 fun FeedItemMediaAttachments(feedItem: FeedItem, tokenAsHttpHeader: Pair<String, String>?) {
     val attachments = feedItem.mediaAttachments
-    // TODO Handle onClick: Image -> show in full; video/gifv -> open feed item in app
-    // TODO Overlay video preview with play button
-    // TODO Play back gifv mp4 or overlay with play button if not possible on platform
     LazyRow {
         items(
             attachments.size,
             key = { attachments[it].previewImageUrl },
-            itemContent = {
-                val attachment = attachments[it]
-                AsyncImage(
-                    model = createProxiedImageRequest(
-                        LocalPlatformContext.current,
-                        attachment.previewImageUrl,
-                        tokenAsHttpHeader
-                    ),
-                    contentDescription = feedItem.author,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .size(128.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .border(1.dp, Color.Black)
-                )
-            })
+            itemContent = { MediaAttachment(attachments[it], tokenAsHttpHeader) })
+    }
+}
+
+@Composable
+private fun MediaAttachment(
+    attachment: MediaAttachment,
+    tokenAsHttpHeader: Pair<String, String>?
+) {
+    Box {
+        AsyncImage(
+            model = createProxiedImageRequest(
+                LocalPlatformContext.current,
+                attachment.previewImageUrl,
+                tokenAsHttpHeader
+            ),
+            contentDescription = "feed item media attachment",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .padding(8.dp)
+                .size(128.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .border(1.dp, Color.Black)
+        )
+        if (attachment.type == MediaType.Gifv || attachment.type == MediaType.Video) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .align(Alignment.Center)
+            )
+            Icon(
+                imageVector = Icons.Default.PlayArrow,
+                contentDescription = "Play",
+                modifier = Modifier.size(48.dp).align(Alignment.Center),
+                tint = Color.White
+            )
+        }
     }
 }
 
