@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import coil3.PlatformContext
 import coil3.annotation.ExperimentalCoilApi
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
@@ -301,7 +302,6 @@ private fun rememberForeverFeedItemsListState(feedItems: List<FeedItem>): LazyLi
     )
 }
 
-@OptIn(ExperimentalCoilApi::class)
 @Composable
 private fun FeedItemRow(
     feedItem: FeedItem,
@@ -332,19 +332,12 @@ private fun FeedItemRow(
                 bottom = 16.dp
             )
         ) {
-            val request = ImageRequest.Builder(LocalPlatformContext.current)
-                .data(feedItem.authorImageUrl?.let {
-                    getPlatform().corsProxiedUrlToAbsoluteUrl(socialMediaCenterBaseUrl, it)
-                })
-                .also {
-                    if (tokenAsHttpHeader != null) {
-                        val (key, value) = tokenAsHttpHeader
-                        it.httpHeaders(NetworkHeaders.Builder().add(key, value).build())
-                    }
-                }
-                .build()
             AsyncImage(
-                model = request,
+                model = createProxiedImageRequest(
+                    LocalPlatformContext.current,
+                    feedItem.authorImageUrl,
+                    tokenAsHttpHeader
+                ),
                 contentDescription = feedItem.author,
                 modifier = Modifier
                     .padding(8.dp)
@@ -376,6 +369,23 @@ private fun FeedItemRow(
         }
     }
 }
+
+@OptIn(ExperimentalCoilApi::class)
+private fun createProxiedImageRequest(
+    context: PlatformContext,
+    url: String?,
+    tokenAsHttpHeader: Pair<String, String>?
+) = ImageRequest.Builder(context)
+    .data(url?.let {
+        getPlatform().corsProxiedUrlToAbsoluteUrl(socialMediaCenterBaseUrl, it)
+    })
+    .also {
+        if (tokenAsHttpHeader != null) {
+            val (key, value) = tokenAsHttpHeader
+            it.httpHeaders(NetworkHeaders.Builder().add(key, value).build())
+        }
+    }
+    .build()
 
 private fun createEmojiDownloader(httpClient: HttpClient): suspend (EmojiUrl) -> ByteArray =
     { emojiUrl -> downloadEmoji(httpClient, emojiUrl) }
