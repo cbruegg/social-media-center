@@ -297,7 +297,7 @@ private fun rememberForeverFeedItemsListState(feedItems: List<FeedItem>): LazyLi
     return rememberForeverLazyListState(
         "appScrollState",
         persistence,
-        idOfItemAt = { feedItems[it].id },
+        idOfItemAt = { feedItems.getOrNull(it)?.id ?: "___out-of-bounds___" },
         indexOfItem = { id -> feedItems.indexOfFirst { it.id == id }.takeIf { it != -1 } }
     )
 }
