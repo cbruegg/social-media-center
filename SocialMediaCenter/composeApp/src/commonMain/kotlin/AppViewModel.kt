@@ -6,6 +6,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -16,10 +18,8 @@ import security.AuthTokenRepository
 import kotlin.concurrent.Volatile
 import kotlin.time.Duration.Companion.minutes
 
-private const val KEY_STATE = "state"
-
 class AppViewModel(
-    private val savedStateHandle: SavedStateHandle,
+    savedStateHandle: SavedStateHandle,
     private val api: Api,
     private val authTokenRepository: AuthTokenRepository
 ) : ViewModel() {
@@ -43,11 +43,12 @@ class AppViewModel(
     }
 
     private val mutex = Mutex()
-    val stateFlow = savedStateHandle.getStateFlow<State>(KEY_STATE, State.initial)
-    private var state: State
-        get() = stateFlow.value
+    private val _stateFlow = MutableStateFlow<State>(State.initial)
+    val stateFlow = _stateFlow.asStateFlow()
+    private var state: State // TODO Remove this and Mutex and use update func of stateflow itself
+        get() = _stateFlow.value
         set(value) {
-            savedStateHandle[KEY_STATE] = value
+            _stateFlow.value = value
         }
 
     @Volatile
