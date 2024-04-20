@@ -12,7 +12,19 @@ data class FeedItem(
     val published: Instant,
     val link: String?,
     val platform: PlatformId,
-    val repost: FeedItem?
+    val repost: FeedItem?,
+    val mediaAttachments: List<MediaAttachment>
 )
+
+@Serializable
+data class MediaAttachment(
+    val type: MediaType,
+    val previewImageUrl: String,
+    val fullUrl: String
+)
+
+enum class MediaType {
+    Image, Video, Gifv
+}
 
 enum class PlatformId { Twitter, Mastodon, BlueSky }

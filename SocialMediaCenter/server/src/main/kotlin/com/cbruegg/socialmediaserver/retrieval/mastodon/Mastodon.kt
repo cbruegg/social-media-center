@@ -3,6 +3,8 @@ package com.cbruegg.socialmediaserver.retrieval.mastodon
 import com.cbruegg.socialmediaserver.retrieval.SocialPlatform
 import com.cbruegg.socialmediaserver.shared.FeedItem
 import com.cbruegg.socialmediaserver.shared.MastodonUser
+import com.cbruegg.socialmediaserver.shared.MediaAttachment
+import com.cbruegg.socialmediaserver.shared.MediaType
 import com.cbruegg.socialmediaserver.shared.PlatformId
 import com.cbruegg.socialmediaserver.shared.serverWithoutScheme
 import kotlinx.datetime.toKotlinInstant
@@ -10,6 +12,7 @@ import social.bigbone.MastodonClient
 import social.bigbone.api.Range
 import social.bigbone.api.entity.Status
 import java.time.Instant
+import social.bigbone.api.entity.MediaAttachment as MastodonMediaAttachment
 
 
 class Mastodon(
@@ -23,7 +26,8 @@ class Mastodon(
     }
 
     private suspend fun getFeed(user: MastodonUser): List<FeedItem> {
-        val clientConfiguration = mastodonCredentialsRepository.getCredentials().findClientConfiguration(user)
+        val clientConfiguration =
+            mastodonCredentialsRepository.getCredentials().findClientConfiguration(user)
         if (clientConfiguration == null) {
             println("Did not find a clientConfiguration for $user, returning empty feed!")
             return emptyList()
@@ -34,8 +38,9 @@ class Mastodon(
             .accessToken(token.accessToken)
             .build()
 
-        val result = runCatching { client.timelines.getHomeTimeline(Range(limit = 50)).execute().part }
-            .map { statuses -> statuses.map { it.toFeedItem(user.server) } }
+        val result =
+            runCatching { client.timelines.getHomeTimeline(Range(limit = 50)).execute().part }
+                .map { statuses -> statuses.map { it.toFeedItem(user.server) } }
 
         result.exceptionOrNull()?.printStackTrace()
         return result.getOrDefault(emptyList())
@@ -61,6 +66,22 @@ private fun Status.toFeedItem(userServerBaseUrl: String): FeedItem {
         published = createdAt.mostPreciseOrFallback(Instant.now()).toKotlinInstant(),
         link = url.takeIf { it.isNotEmpty() },
         platform = PlatformId.Mastodon,
-        repost = reblog?.toFeedItem(userServerBaseUrl)
+        repost = reblog?.toFeedItem(userServerBaseUrl),
+        mediaAttachments = mediaAttachments.mapNotNull { it.toMediaAttachment() }
+    )
+}
+
+private fun MastodonMediaAttachment.toMediaAttachment(): MediaAttachment? {
+    val type = when (type) {
+        MastodonMediaAttachment.MediaType.AUDIO -> return null // unsupported
+        MastodonMediaAttachment.MediaType.IMAGE -> MediaType.Image
+        MastodonMediaAttachment.MediaType.VIDEO -> MediaType.Video
+        MastodonMediaAttachment.MediaType.GIFV -> MediaType.Gifv
+        MastodonMediaAttachment.MediaType.UNKNOWN -> return null
+    }
+    return MediaAttachment(
+        type = type,
+        previewImageUrl = previewUrl,
+        fullUrl = url
     )
 }

@@ -107,9 +107,23 @@ def main(list_id: str, data_path: str) -> None:
 
 
 def tweet_to_feed_item(tweet: twikit.Tweet):
-    name = tweet.user.name
     screen_name = tweet.user.screen_name
     link = f"https://twitter.com/{screen_name}/status/{tweet.id}"
+    media_attachments = []
+    if tweet.media is not None:
+        for item in tweet.media:
+            if item['type'] == 'photo':
+                media_attachments.append({
+                    'type': 'Image',
+                    'previewImageUrl': item["media_url_https"],
+                    'fullUrl': item["media_url_https"]
+                })
+            elif item['type'] == 'video':
+                media_attachments.append({
+                    'type': 'Video',
+                    'previewImageUrl': item["media_url_https"],
+                    'fullUrl': max(item['video_info']['variants'], key=lambda x: x.get('bitrate', -1))['url']
+                })
     return {
         'text': tweet.text,
         'author': f"@{screen_name}",
@@ -118,7 +132,8 @@ def tweet_to_feed_item(tweet: twikit.Tweet):
         'published': parser.parse(tweet.created_at),
         'link': link,
         'platform': 'Twitter',
-        'repost': None
+        'repost': None,
+        'mediaAttachments': media_attachments
     }
 
 
