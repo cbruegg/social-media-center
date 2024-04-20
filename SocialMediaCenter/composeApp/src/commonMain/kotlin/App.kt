@@ -56,7 +56,9 @@ import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
 import coil3.request.ImageRequest
 import com.cbruegg.socialmediaserver.shared.FeedItem
+import com.cbruegg.socialmediaserver.shared.MastodonUser
 import com.cbruegg.socialmediaserver.shared.serverWithoutScheme
+import com.hoc081098.kmp.viewmodel.CreationExtras
 import com.hoc081098.kmp.viewmodel.compose.kmpViewModel
 import com.hoc081098.kmp.viewmodel.createSavedStateHandle
 import components.FeedItemContentText
@@ -69,7 +71,9 @@ import org.kodein.emoji.compose.EmojiUrl
 import org.kodein.emoji.compose.LocalEmojiDownloader
 import org.kodein.emoji.compose.WithPlatformEmoji
 import persistence.rememberForeverLazyListState
+import security.AuthTokenRepository
 import security.tokenAsHttpHeader
+import util.ContextualUriHandler
 import util.LocalContextualUriHandler
 import util.LocalInAppBrowserOpener
 import util.toContextualUriHandler
@@ -77,8 +81,6 @@ import util.toContextualUriHandler
 // TODO: Configurable server
 // TODO: Remember timeline state across devices
 // TODO: (Configurable?) maximum post height (Mastodon posts can be very long)
-// TODO: Move logic to some ViewModel
-// TODO: Support mentions (maybe not for all platforms)
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -90,7 +92,6 @@ fun App() {
     MaterialTheme(
         colors = if (isSystemInDarkTheme()) darkColors() else lightColors()
     ) {
-        // TODO Move logic to viewmodel
         // TODO Use something for DI
         val clipboardManager = LocalClipboardManager.current
         val localUriHandler = LocalUriHandler.current
@@ -104,17 +105,14 @@ fun App() {
             ) ?: localUriHandler.toContextualUriHandler(inAppBrowserOpener)
         }
         val authTokenRepository = remember { createAuthTokenRepository() }
-        val api =
-            remember(authTokenRepository) { createApi(createApiHttpClient(authTokenRepository)) }
-        val downloadEmoji = remember() { createEmojiDownloader(createGenericHttpClient()) }
+        val downloadEmoji = remember { createEmojiDownloader(createGenericHttpClient()) }
 
         CompositionLocalProvider(
             LocalContextualUriHandler provides uriHandler,
             LocalEmojiDownloader provides downloadEmoji
         ) {
             val scope = rememberCoroutineScope()
-            val vm =
-                kmpViewModel { AppViewModel(createSavedStateHandle(), api, authTokenRepository) }
+            val vm = kmpViewModel { createAppViewModel(authTokenRepository) }
             val _state by vm.stateFlow.collectAsState()
             val state = _state // to enable smart-casts
             val isLoading =
@@ -125,53 +123,18 @@ fun App() {
 
             LifecycleHandler(onPause = vm::onPause, onResume = vm::onResume)
 
-            if (state is AppViewModel.State.Loaded && state.showLastLoadFailurePopup) {
-                val lastLoadFailure = state.lastLoadFailure
-                AlertDialog(
-                    text = {
-                        Text(
-                            lastLoadFailure?.message ?: lastLoadFailure?.toString() ?: "No error!"
-                        )
-                    },
-                    onDismissRequest = { scope.launch { vm.dismissLastLoadFailurePopup() } },
-                    dismissButton = {
-                        TextButton(onClick = {
-                            scope.launch { vm.dismissLastLoadFailurePopup() }
-                        }) { Text("Dismiss") }
-                    },
-                    confirmButton = {}
+            if (state is AppViewModel.State.Loaded && state.showLastLoadFailurePopup && state.lastLoadFailure != null) {
+                LastLoadFailurePopup(
+                    state.lastLoadFailure,
+                    dismissLastLoadFailurePopup = { scope.launch { vm.dismissLastLoadFailurePopup() } }
                 )
             }
 
-            // TODO Break up this huge Composable
             if (state is AppViewModel.State.ShowAuthDialog) {
-                Dialog(
-                    onDismissRequest = {}, properties = DialogProperties(
-                        dismissOnBackPress = false,
-                        dismissOnClickOutside = false
-                    )
-                ) {
-                    var tokenInput by remember { mutableStateOf(authTokenRepository.token ?: "") }
-
-                    Card {
-                        Column(Modifier.padding(16.dp)) {
-                            Text(
-                                "Please enter your authentication token.",
-                                modifier = Modifier.padding(8.dp)
-                            )
-                            TextField(
-                                value = tokenInput,
-                                onValueChange = { tokenInput = it },
-                                label = { Text("Token") }
-                            )
-                            TextButton(onClick = {
-                                scope.launch { vm.onTokenEntered(tokenInput) }
-                            }) {
-                                Text("Save")
-                            }
-                        }
-                    }
-                }
+                AuthDialog(
+                    authTokenRepository,
+                    onTokenEntered = { scope.launch { vm.onTokenEntered(it) } }
+                )
             }
 
             Surface {
@@ -181,56 +144,22 @@ fun App() {
                         .windowInsetsPadding(WindowInsets.safeDrawing.only(windowInsetSides))
                 ) {
                     Column(modifier = Modifier.widthIn(max = 1000.dp).align(Alignment.TopCenter)) {
-                        if (state is AppViewModel.State.Loaded && state.lastLoadFailure != null) {
-                            Card(modifier = Modifier.padding(8.dp)) {
-                                Row {
-                                    Text("Loading error!")
-                                    TextButton({ scope.launch { vm.showLastLoadFailurePopup() } }) {
-                                        Text(
-                                            "Details"
-                                        )
-                                    }
-                                    TextButton({ scope.launch { vm.dismissLastLoadFailure() } }) {
-                                        Text(
-                                            "Dismiss"
-                                        )
-                                    }
-                                }
-                            }
-                        }
                         if (state is AppViewModel.State.Loaded) {
-                            for (unauthenticatedMastodonAccount in state.unauthenticatedMastodonAccounts) {
-                                Card(modifier = Modifier.padding(8.dp)) {
-                                    Column {
-                                        val instanceName =
-                                            unauthenticatedMastodonAccount.serverWithoutScheme
-                                        val displayName =
-                                            "@${unauthenticatedMastodonAccount.username}@$instanceName"
-                                        Text("Please authenticate your account $displayName")
-                                        TextButton({
-                                            uriHandler.openUri("$socialMediaCenterBaseUrl/authorize/mastodon/start?instanceName=$instanceName&socialMediaCenterBaseUrl=${socialMediaCenterBaseUrl.encodeURLParameter()}")
-                                        }) {
-                                            Text("Authenticate")
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        if (state is AppViewModel.State.Loaded) {
-                            val feedItems = state.feedItems
-                            LazyColumn(state = rememberForeverFeedItemsListState(feedItems)) {
-                                items(
-                                    feedItems.size,
-                                    key = { feedItems[it].id },
-                                    itemContent = {
-                                        FeedItemRow(
-                                            feedItems[it],
-                                            tokenAsHttpHeader = authTokenRepository.tokenAsHttpHeader,
-                                            Modifier.padding(top = if (it == 0) 8.dp else 0.dp)
-                                        )
-                                    }
+                            if (state.lastLoadFailure != null) {
+                                LoadFailureCard(
+                                    showPopup = { scope.launch { vm.showLastLoadFailurePopup() } },
+                                    dismissFailure = { scope.launch { vm.dismissLastLoadFailure() } }
                                 )
                             }
+
+                            for (unauthenticatedMastodonAccount in state.unauthenticatedMastodonAccounts) {
+                                UnauthenticatedMastodonAccountWarningCard(
+                                    unauthenticatedMastodonAccount,
+                                    uriHandler
+                                )
+                            }
+
+                            Feed(state.feedItems, authTokenRepository)
                         }
                     }
                     PullRefreshIndicator(
@@ -238,6 +167,123 @@ fun App() {
                         state = pullRefreshState,
                         modifier = Modifier.align(Alignment.TopCenter)
                     )
+                }
+            }
+        }
+    }
+}
+
+private fun CreationExtras.createAppViewModel(authTokenRepository: AuthTokenRepository): AppViewModel {
+    val api = createApi(createApiHttpClient(authTokenRepository))
+    return AppViewModel(createSavedStateHandle(), api, authTokenRepository)
+}
+
+@Composable
+private fun Feed(
+    feedItems: List<FeedItem>,
+    authTokenRepository: AuthTokenRepository
+) {
+    LazyColumn(state = rememberForeverFeedItemsListState(feedItems)) {
+        items(
+            feedItems.size,
+            key = { feedItems[it].id },
+            itemContent = {
+                FeedItemRow(
+                    feedItems[it],
+                    tokenAsHttpHeader = authTokenRepository.tokenAsHttpHeader,
+                    Modifier.padding(top = if (it == 0) 8.dp else 0.dp)
+                )
+            }
+        )
+    }
+}
+
+@Composable
+private fun UnauthenticatedMastodonAccountWarningCard(
+    unauthenticatedMastodonAccount: MastodonUser,
+    uriHandler: ContextualUriHandler
+) {
+    Card(modifier = Modifier.padding(8.dp)) {
+        Column {
+            val instanceName =
+                unauthenticatedMastodonAccount.serverWithoutScheme
+            val displayName =
+                "@${unauthenticatedMastodonAccount.username}@$instanceName"
+            Text("Please authenticate your account $displayName")
+            TextButton({
+                uriHandler.openUri("$socialMediaCenterBaseUrl/authorize/mastodon/start?instanceName=$instanceName&socialMediaCenterBaseUrl=${socialMediaCenterBaseUrl.encodeURLParameter()}")
+            }) {
+                Text("Authenticate")
+            }
+        }
+    }
+}
+
+@Composable
+private fun LastLoadFailurePopup(
+    lastLoadFailure: Throwable,
+    dismissLastLoadFailurePopup: () -> Unit
+) {
+    AlertDialog(
+        text = {
+            Text(
+                lastLoadFailure.message ?: lastLoadFailure.toString()
+            )
+        },
+        onDismissRequest = dismissLastLoadFailurePopup,
+        dismissButton = {
+            TextButton(onClick = dismissLastLoadFailurePopup) { Text("Dismiss") }
+        },
+        confirmButton = {}
+    )
+}
+
+@Composable
+private fun LoadFailureCard(showPopup: () -> Unit, dismissFailure: () -> Unit) {
+    Card(modifier = Modifier.padding(8.dp)) {
+        Row {
+            Text("Loading error!")
+            TextButton(onClick = showPopup) {
+                Text(
+                    "Details"
+                )
+            }
+            TextButton(onClick = dismissFailure) {
+                Text(
+                    "Dismiss"
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AuthDialog(
+    authTokenRepository: AuthTokenRepository,
+    onTokenEntered: (token: String) -> Unit
+) {
+    Dialog(
+        onDismissRequest = {},
+        properties = DialogProperties(
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false
+        )
+    ) {
+        var tokenInput by remember { mutableStateOf(authTokenRepository.token ?: "") }
+
+        Card {
+            Column(Modifier.padding(16.dp)) {
+                Text(
+                    "Please enter your authentication token.",
+                    modifier = Modifier.padding(8.dp)
+                )
+                TextField(
+                    value = tokenInput,
+                    onValueChange = { tokenInput = it },
+                    label = { Text("Token") }
+                )
+                TextButton(onClick = { onTokenEntered(tokenInput) }) {
+                    Text("Save")
                 }
             }
         }
