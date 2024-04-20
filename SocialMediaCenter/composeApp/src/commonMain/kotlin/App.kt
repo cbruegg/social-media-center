@@ -16,7 +16,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.Card
 import androidx.compose.material.ExperimentalMaterialApi
@@ -42,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
@@ -351,6 +354,7 @@ private fun FeedItemRow(
                     Text(text, inlineContent = content, fontWeight = FontWeight.Bold)
                 }
                 FeedItemContentText(feedItem)
+                FeedItemMediaAttachments(feedItem, tokenAsHttpHeader)
                 val repost = feedItem.repost
                 if (repost != null && showRepost) {
                     FeedItemRow(
@@ -367,6 +371,36 @@ private fun FeedItemRow(
                 )
             }
         }
+    }
+}
+
+@Composable
+fun FeedItemMediaAttachments(feedItem: FeedItem, tokenAsHttpHeader: Pair<String, String>?) {
+    val attachments = feedItem.mediaAttachments
+    // TODO Handle onClick: Image -> show in full; video/gifv -> open feed item in app
+    // TODO Overlay video preview with play button
+    // TODO Play back gifv mp4 or overlay with play button if not possible on platform
+    LazyRow {
+        items(
+            attachments.size,
+            key = { attachments[it].previewImageUrl },
+            itemContent = {
+                val attachment = attachments[it]
+                AsyncImage(
+                    model = createProxiedImageRequest(
+                        LocalPlatformContext.current,
+                        attachment.previewImageUrl,
+                        tokenAsHttpHeader
+                    ),
+                    contentDescription = feedItem.author,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .size(128.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .border(1.dp, Color.Black)
+                )
+            })
     }
 }
 
