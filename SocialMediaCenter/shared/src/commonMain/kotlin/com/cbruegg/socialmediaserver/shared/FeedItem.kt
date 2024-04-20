@@ -13,7 +13,7 @@ data class FeedItem(
     val link: String?,
     val platform: PlatformId,
     val repost: FeedItem?,
-    val mediaAttachments: List<MediaAttachment>
+    val mediaAttachments: List<MediaAttachment> = emptyList()
 )
 
 @Serializable
