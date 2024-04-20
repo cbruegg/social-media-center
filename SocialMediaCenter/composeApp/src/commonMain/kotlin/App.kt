@@ -1,4 +1,3 @@
-
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -33,7 +32,7 @@ import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,14 +56,13 @@ import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
 import coil3.request.ImageRequest
 import com.cbruegg.socialmediaserver.shared.FeedItem
-import com.cbruegg.socialmediaserver.shared.MastodonUser
 import com.cbruegg.socialmediaserver.shared.serverWithoutScheme
+import com.hoc081098.kmp.viewmodel.compose.kmpViewModel
+import com.hoc081098.kmp.viewmodel.createSavedStateHandle
 import components.FeedItemContentText
 import components.LifecycleHandler
 import io.ktor.client.HttpClient
 import io.ktor.http.encodeURLParameter
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.kodein.emoji.compose.EmojiUrl
@@ -75,7 +73,6 @@ import security.tokenAsHttpHeader
 import util.LocalContextualUriHandler
 import util.LocalInAppBrowserOpener
 import util.toContextualUriHandler
-import kotlin.time.Duration.Companion.minutes
 
 // TODO: Configurable server
 // TODO: Remember timeline state across devices
@@ -94,7 +91,7 @@ fun App() {
         colors = if (isSystemInDarkTheme()) darkColors() else lightColors()
     ) {
         // TODO Move logic to viewmodel
-        // TODO Use Dagger for DI
+        // TODO Use something for DI
         val clipboardManager = LocalClipboardManager.current
         val localUriHandler = LocalUriHandler.current
         val inAppBrowserOpener = LocalInAppBrowserOpener.current
@@ -116,71 +113,30 @@ fun App() {
             LocalEmojiDownloader provides downloadEmoji
         ) {
             val scope = rememberCoroutineScope()
-            var feedItems: List<FeedItem>? by remember { mutableStateOf(null) }
-            var unauthenticatedMastodonAccounts by remember { mutableStateOf(emptyList<MastodonUser>()) }
-            var lastLoadFailure: Throwable? by remember { mutableStateOf(null) }
-            var isLoading by remember { mutableStateOf(false) }
-            var shouldRefreshPeriodically by remember { mutableStateOf(true) }
-            var showAuthDialog by remember { mutableStateOf(authTokenRepository.token == null) }
-            val refresh = suspend {
-                if (!isLoading) {
-                    println("Refreshing...")
-                    isLoading = true
-                    when (val feedResult = api.getFeed()) {
-                        is ApiResponse.Ok -> {
-                            feedItems = feedResult.body
-                            lastLoadFailure = null
-                        }
+            val vm =
+                kmpViewModel { AppViewModel(createSavedStateHandle(), api, authTokenRepository) }
+            val _state by vm.stateFlow.collectAsState()
+            val state = _state // to enable smart-casts
+            val isLoading =
+                state is AppViewModel.State.InitialLoad && state.started || state is AppViewModel.State.Loaded && state.isLoading
 
-                        is ApiResponse.Unauthorized -> showAuthDialog = true
-                        is ApiResponse.ErrorStatus -> lastLoadFailure = feedResult
-                        is ApiResponse.CaughtException -> lastLoadFailure = feedResult.exception
-                    }
-                    unauthenticatedMastodonAccounts =
-                        when (val unauthenticatedMastodonAccountsResult =
-                            api.getUnauthenticatedMastodonAccounts()) {
-                            is ApiResponse.Ok -> unauthenticatedMastodonAccountsResult.body
-                            else -> emptyList()
-                        }
-                    isLoading = false
-                }
-            }
             val pullRefreshState =
-                rememberPullRefreshState(isLoading, { scope.launch { refresh() } })
-            var showLastLoadFailure by remember { mutableStateOf(false) }
+                rememberPullRefreshState(isLoading, { scope.launch { vm.requestRefresh() } })
 
-            LaunchedEffect(Unit) { refresh() } // initial load
-            LaunchedEffect(Unit) {
-                launch {
-                    while (isActive) {
-                        delay(1.minutes)
-                        if (shouldRefreshPeriodically && !showAuthDialog) {
-                            refresh()
-                        } else {
-                            println("Skipping refresh")
-                        }
-                    }
-                }
-            }
-            LifecycleHandler(
-                onPause = { shouldRefreshPeriodically = false },
-                onResume = {
-                    shouldRefreshPeriodically = true
-                    scope.launch { refresh() }
-                }
-            )
+            LifecycleHandler(onPause = vm::onPause, onResume = vm::onResume)
 
-            if (showLastLoadFailure) {
+            if (state is AppViewModel.State.Loaded && state.showLastLoadFailurePopup) {
+                val lastLoadFailure = state.lastLoadFailure
                 AlertDialog(
                     text = {
                         Text(
                             lastLoadFailure?.message ?: lastLoadFailure?.toString() ?: "No error!"
                         )
                     },
-                    onDismissRequest = { showLastLoadFailure = false },
+                    onDismissRequest = { scope.launch { vm.dismissLastLoadFailurePopup() } },
                     dismissButton = {
                         TextButton(onClick = {
-                            showLastLoadFailure = false
+                            scope.launch { vm.dismissLastLoadFailurePopup() }
                         }) { Text("Dismiss") }
                     },
                     confirmButton = {}
@@ -188,7 +144,7 @@ fun App() {
             }
 
             // TODO Break up this huge Composable
-            if (showAuthDialog) {
+            if (state is AppViewModel.State.ShowAuthDialog) {
                 Dialog(
                     onDismissRequest = {}, properties = DialogProperties(
                         dismissOnBackPress = false,
@@ -209,9 +165,7 @@ fun App() {
                                 label = { Text("Token") }
                             )
                             TextButton(onClick = {
-                                authTokenRepository.updateToken(tokenInput)
-                                scope.launch { refresh() }
-                                showAuthDialog = false
+                                scope.launch { vm.onTokenEntered(tokenInput) }
                             }) {
                                 Text("Save")
                             }
@@ -227,32 +181,43 @@ fun App() {
                         .windowInsetsPadding(WindowInsets.safeDrawing.only(windowInsetSides))
                 ) {
                     Column(modifier = Modifier.widthIn(max = 1000.dp).align(Alignment.TopCenter)) {
-                        if (lastLoadFailure != null) {
+                        if (state is AppViewModel.State.Loaded && state.lastLoadFailure != null) {
                             Card(modifier = Modifier.padding(8.dp)) {
                                 Row {
                                     Text("Loading error!")
-                                    TextButton({ showLastLoadFailure = true }) { Text("Details") }
-                                    TextButton({ lastLoadFailure = null }) { Text("Dismiss") }
-                                }
-                            }
-                        }
-                        for (unauthenticatedMastodonAccount in unauthenticatedMastodonAccounts) {
-                            Card(modifier = Modifier.padding(8.dp)) {
-                                Column {
-                                    val instanceName =
-                                        unauthenticatedMastodonAccount.serverWithoutScheme
-                                    val displayName =
-                                        "@${unauthenticatedMastodonAccount.username}@$instanceName"
-                                    Text("Please authenticate your account $displayName")
-                                    TextButton({
-                                        uriHandler.openUri("$socialMediaCenterBaseUrl/authorize/mastodon/start?instanceName=$instanceName&socialMediaCenterBaseUrl=${socialMediaCenterBaseUrl.encodeURLParameter()}")
-                                    }) {
-                                        Text("Authenticate")
+                                    TextButton({ scope.launch { vm.showLastLoadFailurePopup() } }) {
+                                        Text(
+                                            "Details"
+                                        )
+                                    }
+                                    TextButton({ scope.launch { vm.dismissLastLoadFailure() } }) {
+                                        Text(
+                                            "Dismiss"
+                                        )
                                     }
                                 }
                             }
                         }
-                        feedItems?.let { feedItems ->
+                        if (state is AppViewModel.State.Loaded) {
+                            for (unauthenticatedMastodonAccount in state.unauthenticatedMastodonAccounts) {
+                                Card(modifier = Modifier.padding(8.dp)) {
+                                    Column {
+                                        val instanceName =
+                                            unauthenticatedMastodonAccount.serverWithoutScheme
+                                        val displayName =
+                                            "@${unauthenticatedMastodonAccount.username}@$instanceName"
+                                        Text("Please authenticate your account $displayName")
+                                        TextButton({
+                                            uriHandler.openUri("$socialMediaCenterBaseUrl/authorize/mastodon/start?instanceName=$instanceName&socialMediaCenterBaseUrl=${socialMediaCenterBaseUrl.encodeURLParameter()}")
+                                        }) {
+                                            Text("Authenticate")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if (state is AppViewModel.State.Loaded) {
+                            val feedItems = state.feedItems
                             LazyColumn(state = rememberForeverFeedItemsListState(feedItems)) {
                                 items(
                                     feedItems.size,

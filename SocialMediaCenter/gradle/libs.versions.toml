@@ -16,6 +16,7 @@ compose-plugin = "1.6.1"
 composeMultiplatformLifecycleTracker = "1.0.0"
 emojiCompose = "1.2.0"
 junit = "4.13.2"
+kmpViewmodelCompose = "0.7.1"
 kotlin = "1.9.23"
 ktor-client = "3.0.0-wasm2"
 ktor-server = "2.3.8"
@@ -31,6 +32,7 @@ logbackClassic = "1.5.3"
 bigbone = { module = "social.bigbone:bigbone", version.ref = "bigbone" }
 compose-multiplatform-lifecycle-tracker = { module = "io.github.kevinnzou:compose-multiplatform-lifecycle-tracker", version.ref = "composeMultiplatformLifecycleTracker" }
 emoji-compose = { module = "org.kodein.emoji:emoji-compose", version.ref = "emojiCompose" }
+kmp-viewmodel-compose = { module = "io.github.hoc081098:kmp-viewmodel-compose", version.ref = "kmpViewmodelCompose" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
