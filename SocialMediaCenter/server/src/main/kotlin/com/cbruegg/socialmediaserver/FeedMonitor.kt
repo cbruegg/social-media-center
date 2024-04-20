@@ -1,13 +1,20 @@
 package com.cbruegg.socialmediaserver
 
-import com.cbruegg.socialmediaserver.retrieval.FeedItem
-import com.cbruegg.socialmediaserver.retrieval.PlatformId
 import com.cbruegg.socialmediaserver.retrieval.SocialPlatform
 import com.cbruegg.socialmediaserver.retrieval.oldestAcceptedFeedItemInstant
-import kotlinx.coroutines.*
+import com.cbruegg.socialmediaserver.retrieval.withProxiedUrl
+import com.cbruegg.socialmediaserver.shared.FeedItem
+import com.cbruegg.socialmediaserver.shared.PlatformId
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.util.*
+import java.util.EnumSet
 import kotlin.random.Random
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds

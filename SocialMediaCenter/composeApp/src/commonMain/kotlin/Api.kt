@@ -1,3 +1,5 @@
+import com.cbruegg.socialmediaserver.shared.FeedItem
+import com.cbruegg.socialmediaserver.shared.MastodonUser
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
@@ -5,8 +7,6 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.isSuccess
-import kotlinx.datetime.Instant
-import kotlinx.serialization.Serializable
 
 class Api(private val baseUrl: String, private val httpClient: HttpClient) {
     suspend fun getFeed(): ApiResponse<List<FeedItem>> = request {
@@ -41,24 +41,3 @@ sealed interface ApiResponse<out T> {
     data class Unauthorized(val body: String) : ApiResponse<Nothing>
     data class Ok<T>(val body: T) : ApiResponse<T>
 }
-
-// TODO Move this stuff to common module
-
-enum class PlatformId { Twitter, Mastodon, BlueSky }
-
-@Serializable
-data class FeedItem(
-    val text: String,
-    val author: String,
-    val authorImageUrl: String?,
-    val id: String,
-    val published: Instant,
-    val link: String?,
-    val platform: PlatformId,
-    val repost: FeedItem?
-)
-
-@Serializable
-data class MastodonUser(val server: String, val username: String)
-
-val MastodonUser.serverWithoutScheme get() = server.substringAfter("://")

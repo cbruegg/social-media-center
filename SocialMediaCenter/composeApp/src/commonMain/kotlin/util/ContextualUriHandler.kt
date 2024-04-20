@@ -1,8 +1,8 @@
 package util
 
-import PlatformId
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.UriHandler
+import com.cbruegg.socialmediaserver.shared.PlatformId
 
 interface ContextualUriHandler {
     fun openPostUri(uri: String, platformOfPost: PlatformId)

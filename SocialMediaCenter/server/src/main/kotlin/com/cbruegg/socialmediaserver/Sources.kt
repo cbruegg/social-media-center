@@ -1,7 +1,7 @@
 package com.cbruegg.socialmediaserver
 
-import com.cbruegg.socialmediaserver.retrieval.mastodon.MastodonUser
 import com.cbruegg.socialmediaserver.retrieval.TwitterList
+import com.cbruegg.socialmediaserver.shared.MastodonUser
 import kotlinx.serialization.Serializable
 
 @Serializable

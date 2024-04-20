@@ -1,23 +1,16 @@
 package com.cbruegg.socialmediaserver.retrieval.mastodon
 
-import com.cbruegg.socialmediaserver.retrieval.FeedItem
-import com.cbruegg.socialmediaserver.retrieval.PlatformId
 import com.cbruegg.socialmediaserver.retrieval.SocialPlatform
+import com.cbruegg.socialmediaserver.shared.FeedItem
+import com.cbruegg.socialmediaserver.shared.MastodonUser
+import com.cbruegg.socialmediaserver.shared.PlatformId
+import com.cbruegg.socialmediaserver.shared.serverWithoutScheme
 import kotlinx.datetime.toKotlinInstant
-import kotlinx.serialization.Serializable
 import social.bigbone.MastodonClient
 import social.bigbone.api.Range
 import social.bigbone.api.entity.Status
 import java.time.Instant
 
-@Serializable
-data class MastodonUser(val server: String, val username: String) {
-    init {
-        check(server.startsWith("http")) { "Invalid configuration, server should start with http(s)://" }
-    }
-}
-
-val MastodonUser.serverWithoutScheme get() = server.substringAfter("://")
 
 class Mastodon(
     private val followingsOf: List<MastodonUser>,

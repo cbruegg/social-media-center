@@ -1,7 +1,5 @@
 package components
 
-import FeedItem
-import PlatformId
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.material.MaterialTheme
@@ -19,6 +17,8 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.UrlAnnotation
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
+import com.cbruegg.socialmediaserver.shared.FeedItem
+import com.cbruegg.socialmediaserver.shared.PlatformId
 import com.mohamedrejeb.ksoup.entities.KsoupEntities
 import org.kodein.emoji.compose.WithPlatformEmoji
 import parseHtml
@@ -62,10 +62,11 @@ fun FeedItemContentText(feedItem: FeedItem) {
 
     ClickableEmojiText(text = annotatedString) { url ->
         println("Clicked $feedItem")
+        val feedItemLink = feedItem.link
         if (!url.isNullOrEmpty())
             uriHandler.openUri(url)
-        else if (feedItem.link != null)
-            uriHandler.openPostUri(feedItem.link, feedItem.platform)
+        else if (feedItemLink != null)
+            uriHandler.openPostUri(feedItemLink, feedItem.platform)
         else
             println("No clickable content, ignoring click")
     }

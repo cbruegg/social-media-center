@@ -32,3 +32,4 @@ if (startParameter.projectProperties.getOrDefault("excludeComposeApp", "") != "t
     include(":composeApp")
 }
 include(":server")
+include(":shared")

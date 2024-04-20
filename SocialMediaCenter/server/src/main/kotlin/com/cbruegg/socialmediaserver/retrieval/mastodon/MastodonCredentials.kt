@@ -1,5 +1,7 @@
 package com.cbruegg.socialmediaserver.retrieval.mastodon
 
+import com.cbruegg.socialmediaserver.shared.MastodonUser
+import com.cbruegg.socialmediaserver.shared.serverWithoutScheme
 import kotlinx.serialization.Serializable
 import social.bigbone.api.entity.Account
 import social.bigbone.api.entity.Application

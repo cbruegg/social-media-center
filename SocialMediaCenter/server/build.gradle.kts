@@ -8,6 +8,8 @@ group = "com.cbruegg"
 version = "1.0-SNAPSHOT"
 
 dependencies {
+    implementation(project(":shared"))
+
     implementation(libs.bigbone)
 
     implementation(libs.kotlinx.coroutines.core)

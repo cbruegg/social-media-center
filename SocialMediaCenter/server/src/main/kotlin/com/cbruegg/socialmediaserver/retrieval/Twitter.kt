@@ -1,5 +1,7 @@
 package com.cbruegg.socialmediaserver.retrieval
 
+import com.cbruegg.socialmediaserver.shared.FeedItem
+import com.cbruegg.socialmediaserver.shared.PlatformId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable

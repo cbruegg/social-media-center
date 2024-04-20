@@ -1,6 +1,7 @@
 package com.cbruegg.socialmediaserver.retrieval.mastodon
 
 import com.cbruegg.socialmediaserver.Sources
+import com.cbruegg.socialmediaserver.shared.MastodonUser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString

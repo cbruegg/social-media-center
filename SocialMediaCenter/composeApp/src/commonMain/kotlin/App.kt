@@ -55,6 +55,9 @@ import coil3.compose.LocalPlatformContext
 import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
 import coil3.request.ImageRequest
+import com.cbruegg.socialmediaserver.shared.FeedItem
+import com.cbruegg.socialmediaserver.shared.MastodonUser
+import com.cbruegg.socialmediaserver.shared.serverWithoutScheme
 import components.FeedItemContentText
 import components.LifecycleHandler
 import io.ktor.client.HttpClient
@@ -343,9 +346,10 @@ private fun FeedItemRow(
                     Text(text, inlineContent = content, fontWeight = FontWeight.Bold)
                 }
                 FeedItemContentText(feedItem)
-                if (feedItem.repost != null && showRepost) {
+                val repost = feedItem.repost
+                if (repost != null && showRepost) {
                     FeedItemRow(
-                        feedItem.repost,
+                        repost,
                         tokenAsHttpHeader,
                         modifier = Modifier.padding(8.dp),
                         showRepost = false // to avoid deep nesting
