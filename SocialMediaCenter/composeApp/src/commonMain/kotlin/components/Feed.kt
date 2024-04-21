@@ -1,0 +1,214 @@
+package components
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.Card
+import androidx.compose.material.Icon
+import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil3.PlatformContext
+import coil3.annotation.ExperimentalCoilApi
+import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.network.NetworkHeaders
+import coil3.network.httpHeaders
+import coil3.request.ImageRequest
+import com.cbruegg.socialmediaserver.shared.FeedItem
+import com.cbruegg.socialmediaserver.shared.MediaAttachment
+import com.cbruegg.socialmediaserver.shared.MediaType
+import getPlatform
+import org.kodein.emoji.compose.WithPlatformEmoji
+import persistence.rememberForeverLazyListState
+import security.AuthTokenRepository
+import security.tokenAsHttpHeader
+import socialMediaCenterBaseUrl
+import util.LocalContextualUriHandler
+
+@Composable
+fun Feed(
+    feedItems: List<FeedItem>,
+    authTokenRepository: AuthTokenRepository
+) {
+    LazyColumn(state = rememberForeverFeedItemsListState(feedItems)) {
+        items(
+            feedItems.size,
+            key = { feedItems[it].id },
+            itemContent = {
+                FeedItemRow(
+                    feedItems[it],
+                    tokenAsHttpHeader = authTokenRepository.tokenAsHttpHeader,
+                    Modifier.padding(top = if (it == 0) 8.dp else 0.dp)
+                )
+            }
+        )
+    }
+}
+
+@Composable
+private fun rememberForeverFeedItemsListState(feedItems: List<FeedItem>): LazyListState {
+    val persistence = getPlatform().persistence
+    return rememberForeverLazyListState(
+        "appScrollState",
+        persistence,
+        idOfItemAt = { feedItems.getOrNull(it)?.id ?: "___out-of-bounds___" },
+        indexOfItem = { id -> feedItems.indexOfFirst { it.id == id }.takeIf { it != -1 } }
+    )
+}
+
+@Composable
+private fun FeedItemRow(
+    feedItem: FeedItem,
+    tokenAsHttpHeader: Pair<String, String>?,
+    modifier: Modifier = Modifier,
+    showRepost: Boolean = true
+) {
+    val uriHandler = LocalContextualUriHandler.current
+
+    val formattedDate = remember(feedItem) { getPlatform().formatFeedItemDate(feedItem.published) }
+    val link = feedItem.link
+
+    Card(modifier = modifier
+        .fillMaxWidth()
+        .let {
+            if (link != null) {
+                it.clickable { uriHandler.openPostUri(link, feedItem.platform) }
+            } else {
+                it
+            }
+        }
+    ) {
+        Row(
+            modifier = Modifier.padding(
+                start = 16.dp,
+                top = 8.dp,
+                end = 16.dp,
+                bottom = 16.dp
+            )
+        ) {
+            AsyncImage(
+                model = createProxiedImageRequest(
+                    LocalPlatformContext.current,
+                    feedItem.authorImageUrl,
+                    tokenAsHttpHeader
+                ),
+                contentDescription = feedItem.author,
+                modifier = Modifier
+                    .padding(8.dp)
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .border(2.dp, Color.Gray, CircleShape)
+            )
+            Column {
+                // Using WithPlatformEmoji for emoji support on WASM
+                WithPlatformEmoji(feedItem.author) { text, content ->
+                    Text(text, inlineContent = content, fontWeight = FontWeight.Bold)
+                }
+                FeedItemContentText(feedItem)
+                FeedItemMediaAttachments(feedItem, tokenAsHttpHeader)
+                val repost = feedItem.repost
+                if (repost != null && showRepost) {
+                    FeedItemRow(
+                        repost,
+                        tokenAsHttpHeader,
+                        modifier = Modifier.padding(8.dp),
+                        showRepost = false // to avoid deep nesting
+                    )
+                }
+                Text(
+                    text = formattedDate,
+                    color = Color.Gray,
+                    fontSize = 12.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FeedItemMediaAttachments(feedItem: FeedItem, tokenAsHttpHeader: Pair<String, String>?) {
+    val attachments = feedItem.mediaAttachments
+    LazyRow {
+        items(
+            attachments.size,
+            key = { attachments[it].previewImageUrl },
+            itemContent = { MediaAttachment(attachments[it], tokenAsHttpHeader) })
+    }
+}
+
+@Composable
+private fun MediaAttachment(
+    attachment: MediaAttachment,
+    tokenAsHttpHeader: Pair<String, String>?
+) {
+    Box {
+        AsyncImage(
+            model = createProxiedImageRequest(
+                LocalPlatformContext.current,
+                attachment.previewImageUrl,
+                tokenAsHttpHeader
+            ),
+            contentDescription = "feed item media attachment",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .padding(8.dp)
+                .size(128.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .border(1.dp, Color.Black)
+        )
+        if (attachment.type == MediaType.Gifv || attachment.type == MediaType.Video) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .align(Alignment.Center)
+            )
+            Icon(
+                imageVector = Icons.Default.PlayArrow,
+                contentDescription = "Play",
+                modifier = Modifier.size(48.dp).align(Alignment.Center),
+                tint = Color.White
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalCoilApi::class)
+private fun createProxiedImageRequest(
+    context: PlatformContext,
+    url: String?,
+    tokenAsHttpHeader: Pair<String, String>?
+) = ImageRequest.Builder(context)
+    .data(url?.let {
+        getPlatform().corsProxiedUrlToAbsoluteUrl(socialMediaCenterBaseUrl, it)
+    })
+    .also {
+        if (tokenAsHttpHeader != null) {
+            val (key, value) = tokenAsHttpHeader
+            it.httpHeaders(NetworkHeaders.Builder().add(key, value).build())
+        }
+    }
+    .build()
