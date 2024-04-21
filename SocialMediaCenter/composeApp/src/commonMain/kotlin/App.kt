@@ -38,7 +38,6 @@ import components.LastLoadFailurePopup
 import components.LifecycleHandler
 import io.ktor.http.encodeURLParameter
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.kodein.emoji.compose.LocalEmojiDownloader
 import util.ContextualUriHandler
 import util.LocalContextualUriHandler
@@ -49,7 +48,6 @@ import util.LocalContextualUriHandler
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-@Preview
 fun App() {
     // Ignore bottom window insets in order to draw below the system bar
     val windowInsetSides = WindowInsetsSides.Start + WindowInsetsSides.End + WindowInsetsSides.Top
