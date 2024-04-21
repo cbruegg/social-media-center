@@ -1,4 +1,10 @@
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalUriHandler
+import com.hoc081098.kmp.viewmodel.compose.kmpViewModel
+import com.hoc081098.kmp.viewmodel.createSavedStateHandle
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpRequestRetry
@@ -13,8 +19,11 @@ import kotlinx.serialization.json.Json
 import org.kodein.emoji.compose.EmojiUrl
 import security.AuthTokenRepository
 import security.tokenAsHttpHeader
+import util.ContextualUriHandler
+import util.LocalInAppBrowserOpener
+import util.toContextualUriHandler
 
-fun createApiHttpClient(authTokenRepository: AuthTokenRepository) = HttpClient {
+private fun createApiHttpClient(authTokenRepository: AuthTokenRepository) = HttpClient {
     install(Auth) {
         providers += object : AuthProvider {
             @Deprecated(
@@ -53,21 +62,21 @@ fun createApiHttpClient(authTokenRepository: AuthTokenRepository) = HttpClient {
     install(HttpRequestRetry)
 }
 
-fun createGenericHttpClient() = HttpClient {
+private fun createGenericHttpClient() = HttpClient {
     install(HttpRequestRetry)
 }
 
 //val socialMediaCenterBaseUrl = "http://localhost:8000"
 val socialMediaCenterBaseUrl = "https://socialmediacenter.cbruegg.com"
 
-fun createAuthTokenRepository() = AuthTokenRepository(getPlatform().persistence)
+private fun createAuthTokenRepository() = AuthTokenRepository(getPlatform().persistence)
 
-fun createApi(httpClient: HttpClient) = Api(
+private fun createApi(httpClient: HttpClient) = Api(
     socialMediaCenterBaseUrl,
     httpClient
 )
 
-suspend fun downloadEmoji(httpClient: HttpClient, emojiUrl: EmojiUrl): ByteArray {
+private suspend fun downloadEmoji(httpClient: HttpClient, emojiUrl: EmojiUrl): ByteArray {
     val bytes = httpClient.get(emojiUrl.url).body<ByteArray>()
     if (getPlatform().nativelySupportsEmojiRendering) {
         return bytes
@@ -90,4 +99,39 @@ suspend fun downloadEmoji(httpClient: HttpClient, emojiUrl: EmojiUrl): ByteArray
     } catch (e: Exception) {
         bytes
     }
+}
+
+private fun createEmojiDownloader(httpClient: HttpClient): suspend (EmojiUrl) -> ByteArray =
+    { emojiUrl -> downloadEmoji(httpClient, emojiUrl) }
+
+class AppDependencies(
+    val uriHandler: ContextualUriHandler,
+    val authTokenRepository: AuthTokenRepository,
+    val downloadEmojis: suspend (EmojiUrl) -> ByteArray,
+    val viewModel: AppViewModel
+)
+
+@Composable
+fun getAppDependencies(): AppDependencies {
+    val clipboardManager = LocalClipboardManager.current
+    val localUriHandler = LocalUriHandler.current
+    val inAppBrowserOpener = LocalInAppBrowserOpener.current
+    val uriHandler = remember(clipboardManager, localUriHandler, inAppBrowserOpener) {
+        getPlatform().createUriHandler(
+            clipboardManager,
+            localUriHandler,
+            inAppBrowserOpener,
+            socialMediaCenterBaseUrl,
+        ) ?: localUriHandler.toContextualUriHandler(inAppBrowserOpener)
+    }
+    val authTokenRepository = remember { createAuthTokenRepository() }
+    val downloadEmoji = remember { createEmojiDownloader(createGenericHttpClient()) }
+    val viewModel = kmpViewModel {
+        val api = createApi(createApiHttpClient(authTokenRepository))
+        AppViewModel(createSavedStateHandle(), api, authTokenRepository)
+    }
+
+    return AppDependencies(
+        uriHandler, authTokenRepository, downloadEmoji, viewModel
+    )
 }

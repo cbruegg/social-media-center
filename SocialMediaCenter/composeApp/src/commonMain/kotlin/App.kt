@@ -1,3 +1,4 @@
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -49,8 +50,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -68,16 +67,11 @@ import com.cbruegg.socialmediaserver.shared.MastodonUser
 import com.cbruegg.socialmediaserver.shared.MediaAttachment
 import com.cbruegg.socialmediaserver.shared.MediaType
 import com.cbruegg.socialmediaserver.shared.serverWithoutScheme
-import com.hoc081098.kmp.viewmodel.CreationExtras
-import com.hoc081098.kmp.viewmodel.compose.kmpViewModel
-import com.hoc081098.kmp.viewmodel.createSavedStateHandle
 import components.FeedItemContentText
 import components.LifecycleHandler
-import io.ktor.client.HttpClient
 import io.ktor.http.encodeURLParameter
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import org.kodein.emoji.compose.EmojiUrl
 import org.kodein.emoji.compose.LocalEmojiDownloader
 import org.kodein.emoji.compose.WithPlatformEmoji
 import persistence.rememberForeverLazyListState
@@ -85,12 +79,12 @@ import security.AuthTokenRepository
 import security.tokenAsHttpHeader
 import util.ContextualUriHandler
 import util.LocalContextualUriHandler
-import util.LocalInAppBrowserOpener
-import util.toContextualUriHandler
 
 // TODO: Configurable server
 // TODO: Remember timeline state across devices
 // TODO: (Configurable?) maximum post height (Mastodon posts can be very long)
+
+
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -99,30 +93,14 @@ fun App() {
     // Ignore bottom window insets in order to draw below the system bar
     val windowInsetSides = WindowInsetsSides.Start + WindowInsetsSides.End + WindowInsetsSides.Top
 
-    MaterialTheme(
-        colors = if (isSystemInDarkTheme()) darkColors() else lightColors()
-    ) {
-        // TODO Use something for DI
-        val clipboardManager = LocalClipboardManager.current
-        val localUriHandler = LocalUriHandler.current
-        val inAppBrowserOpener = LocalInAppBrowserOpener.current
-        val uriHandler = remember(clipboardManager, localUriHandler, inAppBrowserOpener) {
-            getPlatform().createUriHandler(
-                clipboardManager,
-                localUriHandler,
-                inAppBrowserOpener,
-                socialMediaCenterBaseUrl,
-            ) ?: localUriHandler.toContextualUriHandler(inAppBrowserOpener)
-        }
-        val authTokenRepository = remember { createAuthTokenRepository() }
-        val downloadEmoji = remember { createEmojiDownloader(createGenericHttpClient()) }
-
+    MaterialTheme(colors = if (isSystemInDarkTheme()) darkColors() else lightColors()) {
+        val dependencies = getAppDependencies()
         CompositionLocalProvider(
-            LocalContextualUriHandler provides uriHandler,
-            LocalEmojiDownloader provides downloadEmoji
+            LocalContextualUriHandler provides dependencies.uriHandler,
+            LocalEmojiDownloader provides dependencies.downloadEmojis
         ) {
             val scope = rememberCoroutineScope()
-            val vm = kmpViewModel { createAppViewModel(authTokenRepository) }
+            val vm = dependencies.viewModel
             val _state by vm.stateFlow.collectAsState()
             val state = _state // to enable smart-casts
             val isLoading =
@@ -142,7 +120,7 @@ fun App() {
 
             if (state is AppViewModel.State.ShowAuthDialog) {
                 AuthDialog(
-                    authTokenRepository,
+                    dependencies.authTokenRepository,
                     onTokenEntered = { scope.launch { vm.onTokenEntered(it) } }
                 )
             }
@@ -165,11 +143,11 @@ fun App() {
                             for (unauthenticatedMastodonAccount in state.unauthenticatedMastodonAccounts) {
                                 UnauthenticatedMastodonAccountWarningCard(
                                     unauthenticatedMastodonAccount,
-                                    uriHandler
+                                    dependencies.uriHandler
                                 )
                             }
 
-                            Feed(state.feedItems, authTokenRepository)
+                            Feed(state.feedItems, dependencies.authTokenRepository)
                         }
                     }
                     PullRefreshIndicator(
@@ -181,11 +159,6 @@ fun App() {
             }
         }
     }
-}
-
-private fun CreationExtras.createAppViewModel(authTokenRepository: AuthTokenRepository): AppViewModel {
-    val api = createApi(createApiHttpClient(authTokenRepository))
-    return AppViewModel(createSavedStateHandle(), api, authTokenRepository)
 }
 
 @Composable
@@ -445,6 +418,3 @@ private fun createProxiedImageRequest(
         }
     }
     .build()
-
-private fun createEmojiDownloader(httpClient: HttpClient): suspend (EmojiUrl) -> ByteArray =
-    { emojiUrl -> downloadEmoji(httpClient, emojiUrl) }
