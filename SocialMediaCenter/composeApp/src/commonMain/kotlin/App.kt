@@ -1,4 +1,3 @@
-
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -127,10 +126,8 @@ private fun UnauthenticatedMastodonAccountWarningCard(
 ) {
     Card(modifier = Modifier.padding(8.dp)) {
         Column {
-            val instanceName =
-                unauthenticatedMastodonAccount.serverWithoutScheme
-            val displayName =
-                "@${unauthenticatedMastodonAccount.username}@$instanceName"
+            val instanceName = unauthenticatedMastodonAccount.serverWithoutScheme
+            val displayName = "@${unauthenticatedMastodonAccount.username}@$instanceName"
             Text("Please authenticate your account $displayName")
             TextButton({
                 uriHandler.openUri("$socialMediaCenterBaseUrl/authorize/mastodon/start?instanceName=$instanceName&socialMediaCenterBaseUrl=${socialMediaCenterBaseUrl.encodeURLParameter()}")
@@ -147,14 +144,10 @@ private fun LoadFailureCard(showPopup: () -> Unit, dismissFailure: () -> Unit) {
         Row {
             Text("Loading error!")
             TextButton(onClick = showPopup) {
-                Text(
-                    "Details"
-                )
+                Text("Details")
             }
             TextButton(onClick = dismissFailure) {
-                Text(
-                    "Dismiss"
-                )
+                Text("Dismiss")
             }
         }
     }
