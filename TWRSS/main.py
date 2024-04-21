@@ -132,8 +132,8 @@ def tweet_to_feed_item(tweet: twikit.Tweet):
         'published': parser.parse(tweet.created_at),
         'link': link,
         'platform': 'Twitter',
-        'repost': None,
-        'mediaAttachments': media_attachments
+        'mediaAttachments': media_attachments,
+        'repost': tweet_to_feed_item(tweet.quote) if tweet.quote is not None else None
     }
 
 
