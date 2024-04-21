@@ -79,31 +79,21 @@ private class IOSUriHandler(
 
             PlatformId.Mastodon -> {
                 // For Mastodon, opening posts is not always reliable. Copy text to clipboard
-                // to let user paste it into the search bar of their Mastodon app if neede
+                // to let user paste it into the search bar of their Mastodon app if needed
                 clipboardManager.setText(AnnotatedString(uri))
 
+                // Try official Mastodon app first
                 val postId = Url(uri).pathSegments.lastOrNull { it.isNumeric() }
-                if (false && postId != null) {
-                    // Disabled for now as the postId is not the postId as known by the user's
-                    // own Mastodon server. This is because we don't use proper Mastodon APIs,
-                    // but get post data from the RSS feeds of each followed user's server.
-                    // The post IDs on those servers are not the same as the post IDs defined by
-                    // the user's server.
-                    // Unfortunately, the official Mastodon iOS app currently does not support
-                    // opening arbitrary Mastodon post URLs either:
-                    // https://github.com/mastodon/mastodon-ios/issues/968
-                    // We could probably get the post ID by not getting post data through RSS,
-                    // but always through the user's own server instead:
-                    // https://stackoverflow.com/a/76288210/1502352
+                if (postId != null && tryOpenUri("mastodon://status/${postId}")) return
 
-                    if (tryOpenUri("mastodon://status/${postId}")) return
-                }
-
+                // Try Mammoth next
                 // See SceneDelegate.swift in https://github.dev/TheBLVD/mammoth
                 if (tryOpenUri("mammoth://" + uri.removePrefix("https://"))) return
 
+                // Try Opener for any other Mastodon apps
                 if (tryOpenUri("opener://x-callback-url/show-options?url=${uri.encodeURLPath()}")) return
 
+                // If all else fails, delegate to system
                 openUri(uri)
             }
         }
