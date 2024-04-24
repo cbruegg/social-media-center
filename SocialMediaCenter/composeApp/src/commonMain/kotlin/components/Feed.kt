@@ -1,5 +1,10 @@
 package components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -15,12 +20,15 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Card
+import androidx.compose.material.FloatingActionButton
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,6 +48,7 @@ import com.cbruegg.socialmediaserver.shared.FeedItem
 import com.cbruegg.socialmediaserver.shared.MediaAttachment
 import com.cbruegg.socialmediaserver.shared.MediaType
 import getPlatform
+import kotlinx.coroutines.launch
 import org.kodein.emoji.compose.WithPlatformEmoji
 import persistence.rememberForeverLazyListState
 import security.AuthTokenRepository
@@ -52,18 +61,42 @@ fun Feed(
     feedItems: List<FeedItem>,
     authTokenRepository: AuthTokenRepository
 ) {
-    LazyColumn(state = rememberForeverFeedItemsListState(feedItems)) {
-        items(
-            feedItems.size,
-            key = { feedItems[it].id },
-            itemContent = {
-                FeedItemRow(
-                    feedItems[it],
-                    tokenAsHttpHeader = authTokenRepository.tokenAsHttpHeader,
-                    Modifier.padding(top = if (it == 0) 8.dp else 0.dp)
-                )
-            }
-        )
+    Box {
+        val listState = rememberForeverFeedItemsListState(feedItems)
+        LazyColumn(state = listState) {
+            items(
+                feedItems.size,
+                key = { feedItems[it].id },
+                itemContent = {
+                    FeedItemRow(
+                        feedItems[it],
+                        tokenAsHttpHeader = authTokenRepository.tokenAsHttpHeader,
+                        Modifier.padding(top = if (it == 0) 8.dp else 0.dp)
+                    )
+                }
+            )
+        }
+        JumpToTopButton(listState, Modifier.align(Alignment.BottomStart))
+    }
+}
+
+@Composable
+private fun JumpToTopButton(listState: LazyListState, modifier: Modifier = Modifier) {
+    val scope = rememberCoroutineScope()
+    AnimatedVisibility(
+        modifier = modifier,
+        visible = listState.firstVisibleItemIndex != 0,
+        enter = fadeIn() + slideInVertically { it / 2 },
+        exit = slideOutVertically { it / 2 } + fadeOut()
+    ) {
+        FloatingActionButton(
+            onClick = { scope.launch { listState.animateScrollToItem(0) } },
+            modifier = Modifier
+                .padding(8.dp)
+                .size(48.dp)
+        ) {
+            Icon(Icons.Filled.KeyboardArrowUp, "Jump up")
+        }
     }
 }
 
