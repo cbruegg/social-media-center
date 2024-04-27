@@ -92,7 +92,7 @@ private fun JumpToTopButton(listState: LazyListState, modifier: Modifier = Modif
         FloatingActionButton(
             onClick = { scope.launch { listState.animateScrollToItem(0) } },
             modifier = Modifier
-                .padding(8.dp)
+                .padding(16.dp)
                 .size(48.dp)
         ) {
             Icon(Icons.Filled.KeyboardArrowUp, "Jump up")
