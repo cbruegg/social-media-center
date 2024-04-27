@@ -1,6 +1,10 @@
 FROM --platform=$BUILDPLATFORM ubuntu:23.10 AS buildServer
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
+ARG GITHUB_ACTOR
+ARG GITHUB_TOKEN
+ENV GITHUB_ACTOR $GITHUB_ACTOR
+ENV GITHUB_TOKEN $GITHUB_TOKEN
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -16,6 +20,10 @@ RUN ./gradlew -PexcludeComposeApp=true :server:assemble
 RUN unzip /build/SocialMediaCenter/server/build/distributions/server-1.0-SNAPSHOT.zip
 
 FROM --platform=x86_64 ubuntu:23.10 AS buildWebApp
+ARG GITHUB_ACTOR
+ARG GITHUB_TOKEN
+ENV GITHUB_ACTOR $GITHUB_ACTOR
+ENV GITHUB_TOKEN $GITHUB_TOKEN
 # We need to run this on x86_64 as there's no Kotlin/Native compiler for Linux aarch64
 
 RUN apt-get update && \

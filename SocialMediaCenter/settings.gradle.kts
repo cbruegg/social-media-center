@@ -20,6 +20,14 @@ dependencyResolutionManagement {
         maven {
             url = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
         }
+        maven {
+            name = "EmojiKtFork"
+            setUrl("https://maven.pkg.github.com/cbruegg/Emoji.kt")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR")
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
     }
 }
 

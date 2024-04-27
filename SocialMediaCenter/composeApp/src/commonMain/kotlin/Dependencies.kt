@@ -77,28 +77,7 @@ private fun createApi(httpClient: HttpClient) = Api(
 )
 
 private suspend fun downloadEmoji(httpClient: HttpClient, emojiUrl: EmojiUrl): ByteArray {
-    val bytes = httpClient.get(emojiUrl.url).body<ByteArray>()
-    if (getPlatform().nativelySupportsEmojiRendering) {
-        return bytes
-    }
-
-    // Some emoji SVGs have a width and height set on the root element.
-    // We need to remove them as at least on web, they result in oversized flag emojis
-    return try {
-        val xmlStr = bytes.decodeToString()
-        val svgRootStart = xmlStr.indexOf("<svg")
-        val svgRootEndInclusive = xmlStr.indexOf('>', startIndex = svgRootStart)
-        val svgRootStartTag = xmlStr.substring(svgRootStart, svgRootEndInclusive + 1)
-        val fixedSvgRootStartTag = svgRootStartTag.replace(
-            Regex("""(width|height)="\w+""""),
-            ""
-        )
-        val fixedXmlStr =
-            xmlStr.replaceRange(svgRootStart, svgRootEndInclusive + 1, fixedSvgRootStartTag)
-        fixedXmlStr.encodeToByteArray()
-    } catch (e: Exception) {
-        bytes
-    }
+    return httpClient.get(emojiUrl.url).body<ByteArray>()
 }
 
 private fun createEmojiDownloader(httpClient: HttpClient): suspend (EmojiUrl) -> ByteArray =
