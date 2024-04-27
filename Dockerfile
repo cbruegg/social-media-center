@@ -1,4 +1,6 @@
 FROM --platform=$BUILDPLATFORM ubuntu:23.10 AS buildServer
+# Currently does not work on AArch64 as even the shared module requires
+# the unavailable Linux AArch64 compiler :(
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 ARG GITHUB_ACTOR
