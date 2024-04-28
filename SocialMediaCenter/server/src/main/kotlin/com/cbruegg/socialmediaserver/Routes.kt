@@ -60,41 +60,42 @@ fun Routing.installRoutes(
                 upstreamResponseChannel.copyAndClose(this)
             }
         }
-        get("/authorize/mastodon/start") {
-            val instanceName = context.request.queryParameters["instanceName"]
-            val socialMediaCenterBaseUrl =
-                context.request.queryParameters["socialMediaCenterBaseUrl"]?.decodeURLQueryComponent()
-            if (instanceName == null || socialMediaCenterBaseUrl == null) {
-                call.respond(HttpStatusCode.BadRequest)
-                return@get
-            }
-
-            call.sessions.set(MastodonAuthSession(instanceName, socialMediaCenterBaseUrl))
-
-            val client = MastodonClient.Builder(instanceName).build()
-            val appRegistration = client.apps.getOrCreateSocialMediaCenterApp(
-                instanceName,
-                mastodonCredentialsRepository,
-                getMastodonAuthRedirectUri(socialMediaCenterBaseUrl)
-            )
-
-            val clientId = appRegistration.clientId
-
-            if (clientId == null) {
-                call.respond(HttpStatusCode.BadGateway, "Invalid client configuration")
-                return@get
-            }
-
-            val oauthUrl = client.oauth.getOAuthUrl(
-                clientId = clientId,
-                redirectUri = getMastodonAuthRedirectUri(socialMediaCenterBaseUrl),
-                scope = mastodonAppScope
-            )
-            call.respondRedirect(oauthUrl)
-        }
         get("/unauthenticated-mastodon-accounts") {
             call.respond(mastodonCredentialsRepository.findMissingCredentials(sources))
         }
+    }
+
+    get("/authorize/mastodon/start") {
+        val instanceName = context.request.queryParameters["instanceName"]
+        val socialMediaCenterBaseUrl =
+            context.request.queryParameters["socialMediaCenterBaseUrl"]?.decodeURLQueryComponent()
+        if (instanceName == null || socialMediaCenterBaseUrl == null) {
+            call.respond(HttpStatusCode.BadRequest)
+            return@get
+        }
+
+        call.sessions.set(MastodonAuthSession(instanceName, socialMediaCenterBaseUrl))
+
+        val client = MastodonClient.Builder(instanceName).build()
+        val appRegistration = client.apps.getOrCreateSocialMediaCenterApp(
+            instanceName,
+            mastodonCredentialsRepository,
+            getMastodonAuthRedirectUri(socialMediaCenterBaseUrl)
+        )
+
+        val clientId = appRegistration.clientId
+
+        if (clientId == null) {
+            call.respond(HttpStatusCode.BadGateway, "Invalid client configuration")
+            return@get
+        }
+
+        val oauthUrl = client.oauth.getOAuthUrl(
+            clientId = clientId,
+            redirectUri = getMastodonAuthRedirectUri(socialMediaCenterBaseUrl),
+            scope = mastodonAppScope
+        )
+        call.respondRedirect(oauthUrl)
     }
 
     get(MASTODON_COMPLETE_AUTH_URL) {
