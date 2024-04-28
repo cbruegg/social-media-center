@@ -67,8 +67,6 @@ private class IOSUriHandler(
 
     override fun openPostUri(uri: String, platformOfPost: PlatformId) {
         when (platformOfPost) {
-            PlatformId.BlueSky -> openUri(uri)
-
             PlatformId.Twitter -> {
                 val postId = Url(uri).pathSegments.lastOrNull { it.isNumeric() }
                 if (postId != null && tryOpenUri("twitter://status?id=${postId}")) return
