@@ -13,7 +13,11 @@ data class FeedItem(
     val link: String?,
     val platform: PlatformId,
     val repost: FeedItem?,
-    val mediaAttachments: List<MediaAttachment> = emptyList()
+    val mediaAttachments: List<MediaAttachment> = emptyList(),
+    /**
+     * Gets some special treatment as we mostly handle it like a Mastodon post, but not completely
+     */
+    val isSkyBridgePost: Boolean = false
 )
 
 @Serializable
