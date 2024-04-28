@@ -127,7 +127,7 @@ private fun FeedItemRow(
         .fillMaxWidth()
         .let {
             if (link != null) {
-                it.clickable { uriHandler.openPostUri(link, feedItem.platform) }
+                it.clickable { uriHandler.openPostUri(link, feedItem.platform, feedItem.isSkyBridgePost) }
             } else {
                 it
             }

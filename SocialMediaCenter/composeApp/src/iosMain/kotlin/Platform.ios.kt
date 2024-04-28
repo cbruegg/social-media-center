@@ -43,9 +43,9 @@ private class IOSUriHandler(
     private val clipboardManager: ClipboardManager,
     private val inAppBrowserOpener: InAppBrowserOpener?
 ) : ContextualUriHandler {
-    override fun openUri(uri: String) {
+    override fun openUri(uri: String, allowInApp: Boolean) {
         println("Opening with standard handler: $uri")
-        if (inAppBrowserOpener != null) {
+        if (allowInApp && inAppBrowserOpener != null) {
             inAppBrowserOpener.openUriWithinInAppBrowser(uri)
         } else {
             UIApplication.sharedApplication.openURL(
@@ -65,7 +65,7 @@ private class IOSUriHandler(
         return true
     }
 
-    override fun openPostUri(uri: String, platformOfPost: PlatformId) {
+    override fun openPostUri(uri: String, platformOfPost: PlatformId, isSkyBridgePost: Boolean) {
         when (platformOfPost) {
             PlatformId.Twitter -> {
                 val postId = Url(uri).pathSegments.lastOrNull { it.isNumeric() }
@@ -76,12 +76,18 @@ private class IOSUriHandler(
             }
 
             PlatformId.Mastodon -> {
+                if (isSkyBridgePost) {
+                    println("isSkyBridgePost=true -> don't use Mastodon app to open Skybridge post")
+                    openUri(uri, allowInApp = false)
+                    return
+                }
+
                 // For Mastodon, opening posts is not always reliable. Copy text to clipboard
                 // to let user paste it into the search bar of their Mastodon app if needed
                 clipboardManager.setText(AnnotatedString(uri))
 
                 // Try official Mastodon app first
-                val postId = Url(uri).pathSegments.lastOrNull { it.isNumeric() }
+                val postId = Url(uri).pathSegments.lastOrNull { it.isNotEmpty() && it.isNumeric() }
                 if (postId != null && tryOpenUri("mastodon://status/${postId}")) return
 
                 // Try Mammoth next

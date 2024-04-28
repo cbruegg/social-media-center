@@ -5,8 +5,8 @@ import androidx.compose.ui.platform.UriHandler
 import com.cbruegg.socialmediaserver.shared.PlatformId
 
 interface ContextualUriHandler {
-    fun openPostUri(uri: String, platformOfPost: PlatformId)
-    fun openUri(uri: String)
+    fun openPostUri(uri: String, platformOfPost: PlatformId, isSkyBridgePost: Boolean)
+    fun openUri(uri: String, allowInApp: Boolean = true)
 }
 
 val LocalContextualUriHandler = staticCompositionLocalOf<ContextualUriHandler> {
@@ -15,12 +15,12 @@ val LocalContextualUriHandler = staticCompositionLocalOf<ContextualUriHandler> {
 
 fun UriHandler.toContextualUriHandler(inAppBrowserOpener: InAppBrowserOpener?): ContextualUriHandler =
     object : ContextualUriHandler {
-        override fun openPostUri(uri: String, platformOfPost: PlatformId) {
+        override fun openPostUri(uri: String, platformOfPost: PlatformId, isSkyBridgePost: Boolean) {
             this@toContextualUriHandler.openUri(uri)
         }
 
-        override fun openUri(uri: String) {
-            if (inAppBrowserOpener != null) {
+        override fun openUri(uri: String, allowInApp: Boolean) {
+            if (allowInApp && inAppBrowserOpener != null) {
                 inAppBrowserOpener.openUriWithinInAppBrowser(uri)
             } else {
                 this@toContextualUriHandler.openUri(uri)

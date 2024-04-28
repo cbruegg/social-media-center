@@ -66,7 +66,7 @@ fun FeedItemContentText(feedItem: FeedItem) {
         if (!url.isNullOrEmpty())
             uriHandler.openUri(url)
         else if (feedItemLink != null)
-            uriHandler.openPostUri(feedItemLink, feedItem.platform)
+            uriHandler.openPostUri(feedItemLink, feedItem.platform, feedItem.isSkyBridgePost)
         else
             println("No clickable content, ignoring click")
     }
