@@ -45,7 +45,11 @@ private class IOSUriHandler(
 ) : ContextualUriHandler {
     override fun openUri(uri: String, allowInApp: Boolean) {
         println("Opening with standard handler: $uri")
-        if (allowInApp && inAppBrowserOpener != null) {
+
+        // Avoid opening BlueSky app links with in app browser as it will never directly open the
+        // BlueSky app.
+        val isBlueSkyAppLink = uri.startsWith("https://bsky.app")
+        if (allowInApp && inAppBrowserOpener != null && !isBlueSkyAppLink) {
             inAppBrowserOpener.openUriWithinInAppBrowser(uri)
         } else {
             UIApplication.sharedApplication.openURL(

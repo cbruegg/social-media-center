@@ -38,7 +38,11 @@ fun FeedItemContentText(feedItem: FeedItem) {
 
     val annotatedString = if (feedItem.platform.hasHtmlText) {
         remember(feedItem, linkColor) {
-            feedItem.text.parseHtml(linkColor, maxLinkLength = 100)
+            feedItem.text.parseHtml(
+                linkColor,
+                maxLinkLength = 100,
+                isSkyBridgePost = feedItem.isSkyBridgePost
+            )
         }
     } else {
         val decoded = remember(feedItem.text) { KsoupEntities.decodeHtml(feedItem.text) }

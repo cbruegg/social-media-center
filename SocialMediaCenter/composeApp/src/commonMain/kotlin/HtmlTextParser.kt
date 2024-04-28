@@ -14,6 +14,7 @@ import com.mohamedrejeb.ksoup.html.parser.KsoupHtmlParser
 fun String.parseHtml(
     linkColor: Color,
     maxLinkLength: Int = Int.MAX_VALUE,
+    isSkyBridgePost: Boolean,
     requiresHtmlDecode: Boolean = true
 ): AnnotatedString {
     val string = AnnotatedString.Builder()
@@ -28,7 +29,19 @@ fun String.parseHtml(
                 "p", "span" -> {}
                 "br" -> string.append('\n')
                 "a" -> {
-                    val link = attributes["href"]
+                    val link = attributes["href"]?.let { href ->
+                        if (!isSkyBridgePost) return@let href
+
+                        val profile = href.substringAfter("@@")
+                        if ('/' !in profile && profile.isNotEmpty()) {
+                            // Turn https://skybridge.cbruegg.com/@@ntvde.bsky.social (SkyBridge bug)
+                            // into https://bsky.app/profile/ntvde.bsky.social (fixed)
+                            "https://bsky.app/profile/$profile"
+                        } else {
+                            href
+                        }
+                    }
+
                     visitedLinkUrl = link
 
                     // replaceable with pushStringAnnotation if API goes away due to experimental status
