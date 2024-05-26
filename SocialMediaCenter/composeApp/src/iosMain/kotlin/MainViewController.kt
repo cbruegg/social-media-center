@@ -4,9 +4,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.window.ComposeUIViewController
-import com.multiplatform.lifecycle.LifecycleTracker
-import com.multiplatform.lifecycle.LocalLifecycleTracker
-import com.multiplatform.lifecyle.LifecycleComposeUIVCDelegate
 import platform.Foundation.NSURL
 import platform.SafariServices.SFSafariViewController
 import platform.UIKit.UIViewController
@@ -14,21 +11,14 @@ import util.InAppBrowserOpener
 import util.LocalInAppBrowserOpener
 
 fun MainViewController(): UIViewController {
-    val lifecycleTracker = LifecycleTracker()
-
     var thisViewController by mutableStateOf<UIViewController?>(null)
 
-    val composeUIViewController = ComposeUIViewController({
-        delegate = LifecycleComposeUIVCDelegate(lifecycleTracker)
-    }) {
+    val composeUIViewController = ComposeUIViewController {
         val inAppBrowserOpener = remember(thisViewController) {
             thisViewController?.let { createInAppBrowserOpener(it) }
         }
 
-        CompositionLocalProvider(
-            LocalLifecycleTracker provides lifecycleTracker,
-            LocalInAppBrowserOpener provides inAppBrowserOpener
-        ) {
+        CompositionLocalProvider(LocalInAppBrowserOpener provides inAppBrowserOpener) {
             App()
         }
     }

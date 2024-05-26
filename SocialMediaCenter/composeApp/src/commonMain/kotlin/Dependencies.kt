@@ -3,8 +3,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalUriHandler
-import com.hoc081098.kmp.viewmodel.compose.kmpViewModel
-import com.hoc081098.kmp.viewmodel.createSavedStateHandle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpRequestRetry
@@ -105,9 +104,9 @@ fun getAppDependencies(): AppDependencies {
     }
     val authTokenRepository = remember { createAuthTokenRepository() }
     val downloadEmoji = remember { createEmojiDownloader(createGenericHttpClient()) }
-    val viewModel = kmpViewModel {
+    val viewModel = viewModel {
         val api = createApi(createApiHttpClient(authTokenRepository))
-        AppViewModel(createSavedStateHandle(), api, authTokenRepository)
+        AppViewModel(api, authTokenRepository)
     }
 
     return AppDependencies(

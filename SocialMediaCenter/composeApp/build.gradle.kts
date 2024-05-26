@@ -1,5 +1,5 @@
+
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-import org.jetbrains.kotlin.gradle.plugin.KotlinDependencyHandler
 import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
 
@@ -53,18 +53,12 @@ kotlin {
     sourceSets {
         val desktopMain by getting
 
-        fun KotlinDependencyHandler.nonWasmDependencies() {
-            implementation(libs.compose.multiplatform.lifecycle.tracker)
-        }
-
         androidMain.dependencies {
             implementation(libs.compose.ui.tooling.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.clientside.ktor.client.okhttp)
             implementation(libs.kotlinx.coroutines.android)
-            implementation(libs.androidx.lifecycle.runtime.ktx)
             implementation(libs.androidx.appcompat)
-            nonWasmDependencies()
         }
         commonMain.dependencies {
             implementation(project(":shared"))
@@ -87,17 +81,18 @@ kotlin {
             implementation(libs.ksoup.html)
             implementation(libs.ksoup.entities)
             implementation(libs.emoji.compose)
-            implementation(libs.kmp.viewmodel.compose)
+            implementation(libs.androidx.lifecycle.runtime)
+            implementation(libs.lifecycle.viewmodel)
+            implementation(libs.lifecycle.viewmodel.savedstate)
+            implementation(libs.lifecycle.viewmodel.compose)
         }
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
             implementation(libs.clientside.ktor.client.okhttp)
-            nonWasmDependencies()
         }
         iosMain.dependencies {
             implementation(libs.clientside.ktor.client.darwin)
-            nonWasmDependencies()
         }
     }
 }
@@ -146,8 +141,4 @@ compose.desktop {
             packageVersion = "1.0.0"
         }
     }
-}
-
-compose.experimental {
-    web.application {}
 }

@@ -11,12 +11,10 @@ androidx-espresso-core = "3.5.1"
 androidx-material = "1.12.0"
 androidx-test-junit = "1.1.5"
 bigbone = "2.0.0-SNAPSHOT"
-compose = "1.6.7"
-compose-plugin = "1.6.2"
-composeMultiplatformLifecycleTracker = "1.0.0"
+compose = "1.6.10"
+compose-plugin = "1.6.10"
 emojiCompose = "1.4.0"
 junit = "4.13.2"
-kmpViewmodelCompose = "0.7.1"
 kotlin = "1.9.23"
 ktor-client = "3.0.0-wasm2"
 ktor-server = "2.3.8"
@@ -25,14 +23,12 @@ kotlinx-serialization-json = "1.6.3"
 kotlinx-datetime = "0.5.0"
 coil = "3.0.0-alpha06"
 ksoup = "0.3.1"
-lifecycle = "2.7.0"
+lifecycle = "2.8.0"
 logbackClassic = "1.5.3"
 
 [libraries]
 bigbone = { module = "social.bigbone:bigbone", version.ref = "bigbone" }
-compose-multiplatform-lifecycle-tracker = { module = "io.github.kevinnzou:compose-multiplatform-lifecycle-tracker", version.ref = "composeMultiplatformLifecycleTracker" }
 emoji-compose = { module = "org.kodein.emoji:emoji-compose", version.ref = "emojiCompose" }
-kmp-viewmodel-compose = { module = "io.github.hoc081098:kmp-viewmodel-compose", version.ref = "kmpViewmodelCompose" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -42,7 +38,7 @@ androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-co
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "androidx-appcompat" }
 androidx-material = { group = "com.google.android.material", name = "material", version.ref = "androidx-material" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "androidx-constraintlayout" }
-androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
+androidx-lifecycle-runtime = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-runtime", version.ref = "lifecycle" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activityCompose" }
 compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "compose" }
 compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "compose" }
@@ -56,6 +52,9 @@ coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" 
 coil-network = { module = "io.coil-kt.coil3:coil-network-ktor", version.ref = "coil" }
 ksoup-html = { module = "com.mohamedrejeb.ksoup:ksoup-html", version.ref = "ksoup" }
 ksoup-entities = { module = "com.mohamedrejeb.ksoup:ksoup-entities", version.ref = "ksoup" }
+lifecycle-viewmodel = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel", version.ref = "lifecycle" }
+lifecycle-viewmodel-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+lifecycle-viewmodel-savedstate = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-savedstate", version.ref = "lifecycle" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logbackClassic" }
 
 serverside-ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor-server" }

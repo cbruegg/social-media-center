@@ -1,7 +1,7 @@
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.cbruegg.socialmediaserver.shared.FeedItem
 import com.cbruegg.socialmediaserver.shared.MastodonUser
-import com.hoc081098.kmp.viewmodel.SavedStateHandle
-import com.hoc081098.kmp.viewmodel.ViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
@@ -19,7 +19,6 @@ import kotlin.concurrent.Volatile
 import kotlin.time.Duration.Companion.minutes
 
 class AppViewModel(
-    savedStateHandle: SavedStateHandle,
     private val api: Api,
     private val authTokenRepository: AuthTokenRepository
 ) : ViewModel() {
