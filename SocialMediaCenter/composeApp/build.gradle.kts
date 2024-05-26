@@ -9,7 +9,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsCompose)
     alias(libs.plugins.kotlinxSerialization)
-    alias(libs.plugins.kotlinCompose)
+    alias(libs.plugins.composeCompiler)
     id("kotlin-parcelize")
 }
 
