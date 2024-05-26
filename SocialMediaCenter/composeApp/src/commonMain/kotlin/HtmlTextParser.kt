@@ -17,6 +17,9 @@ fun String.parseHtml(
     isSkyBridgePost: Boolean,
     requiresHtmlDecode: Boolean = true
 ): AnnotatedString {
+    // Can probably be replaced with AnnotatedString.fromHtml once
+    // Compose Multiplatform 1.7 is out: https://developer.android.com/reference/kotlin/androidx/compose/ui/text/AnnotatedString.Companion#(androidx.compose.ui.text.AnnotatedString.Companion).fromHtml(kotlin.String,androidx.compose.ui.text.SpanStyle,androidx.compose.ui.text.SpanStyle,androidx.compose.ui.text.SpanStyle,androidx.compose.ui.text.SpanStyle,androidx.compose.ui.text.LinkInteractionListener)
+    // Supported HTML elements: https://developer.android.com/guide/topics/resources/string-resource#StylingWithHTML
     val string = AnnotatedString.Builder()
 
     var visitedLinkUrl: String? = null // set in onOpenTag, cleared in onCloseTag
