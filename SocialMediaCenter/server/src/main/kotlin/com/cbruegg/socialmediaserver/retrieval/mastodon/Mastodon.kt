@@ -82,6 +82,7 @@ private fun MastodonMediaAttachment.toMediaAttachment(): MediaAttachment? {
         MastodonMediaAttachment.MediaType.GIFV -> MediaType.Gifv
         MastodonMediaAttachment.MediaType.UNKNOWN -> return null
     }
+    val url = url ?: return null
     return MediaAttachment(
         type = type,
         previewImageUrl = previewUrl,

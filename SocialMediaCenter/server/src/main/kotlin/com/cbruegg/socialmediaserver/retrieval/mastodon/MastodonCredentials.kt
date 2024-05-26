@@ -3,8 +3,8 @@ package com.cbruegg.socialmediaserver.retrieval.mastodon
 import com.cbruegg.socialmediaserver.shared.MastodonUser
 import com.cbruegg.socialmediaserver.shared.serverWithoutScheme
 import kotlinx.serialization.Serializable
-import social.bigbone.api.entity.Account
 import social.bigbone.api.entity.Application
+import social.bigbone.api.entity.CredentialAccount
 import social.bigbone.api.entity.Token
 
 typealias MastodonInstanceName = String
@@ -19,10 +19,10 @@ data class MastodonCredentials(val servers: Map<MastodonInstanceName, MastodonSe
         )
     }
 
-    fun withToken(instanceName: String, account: Account, token: Token): MastodonCredentials {
+    fun withToken(instanceName: String, account: CredentialAccount, token: Token): MastodonCredentials {
         val server = servers[instanceName] ?: error("At this point, should always have server config")
         val newServer =
-            server.copy(accounts = server.accounts + ("${account.username}@$instanceName" to MastodonAccountToken(account, token)))
+            server.copy(accounts = server.accounts + ("${account.username}@$instanceName" to MastodonAccountToken(token)))
         return copy(
             servers = servers + (instanceName to newServer)
         )
@@ -48,6 +48,5 @@ data class MastodonServerCredentials(
 
 @Serializable
 data class MastodonAccountToken(
-    val account: Account,
     val token: Token
 )
