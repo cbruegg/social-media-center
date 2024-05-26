@@ -1,5 +1,6 @@
 
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
 
@@ -8,6 +9,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsCompose)
     alias(libs.plugins.kotlinxSerialization)
+    alias(libs.plugins.kotlinCompose)
     id("kotlin-parcelize")
 }
 
@@ -31,8 +33,8 @@ kotlin {
 
     androidTarget {
         compilations.all {
-            kotlinOptions {
-                jvmTarget = "11"
+            compileTaskProvider.get().compilerOptions {
+                jvmTarget.set(JvmTarget.JVM_11)
             }
         }
     }
@@ -54,7 +56,6 @@ kotlin {
         val desktopMain by getting
 
         androidMain.dependencies {
-            implementation(libs.compose.ui.tooling.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.clientside.ktor.client.okhttp)
             implementation(libs.kotlinx.coroutines.android)
@@ -67,7 +68,6 @@ kotlin {
             implementation(compose.material)
             implementation(compose.ui)
             implementation(compose.components.resources)
-            implementation(compose.components.uiToolingPreview)
             implementation(libs.clientside.ktor.client.core)
             implementation(libs.clientside.ktor.client.auth)
             implementation(libs.clientside.ktor.client.content.negotiation)
@@ -125,9 +125,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
-    }
-    dependencies {
-        debugImplementation(libs.compose.ui.tooling)
     }
 }
 

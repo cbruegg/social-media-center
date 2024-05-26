@@ -1,4 +1,5 @@
 
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
 
@@ -28,8 +29,8 @@ kotlin {
 
     androidTarget {
         compilations.all {
-            kotlinOptions {
-                jvmTarget = "11"
+            compileTaskProvider.get().compilerOptions {
+                jvmTarget.set(JvmTarget.JVM_11)
             }
         }
     }
@@ -90,8 +91,5 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
-    }
-    dependencies {
-        debugImplementation(libs.compose.ui.tooling)
     }
 }
