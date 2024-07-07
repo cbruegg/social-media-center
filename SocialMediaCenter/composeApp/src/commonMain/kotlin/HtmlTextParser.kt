@@ -25,9 +25,17 @@ fun String.parseHtml(
     var visitedLinkUrl: String? = null // set in onOpenTag, cleared in onCloseTag
     var visitedLinkText = "" // appended to in text handler if visitedLinkUrl != null
 
+    var paragraphEnded = false
+
     val handler = KsoupHtmlHandler
         .Builder()
         .onOpenTag { name, attributes, _ ->
+            if (paragraphEnded) {
+                // If there's content following a paragraph, it needs upper padding
+                paragraphEnded = false
+                string.append("\n\n")
+            }
+
             when (name) {
                 "p", "span" -> {}
                 "br" -> string.append('\n')
@@ -68,7 +76,7 @@ fun String.parseHtml(
         }
         .onCloseTag { name, _ ->
             when (name) {
-                "p" -> string.append(' ')
+                "p" -> paragraphEnded = true
                 "span", "br" -> {}
                 "b", "u", "i", "em", "s", "blockquote" -> string.pop()
                 "a" -> {
@@ -90,6 +98,12 @@ fun String.parseHtml(
             }
         }
         .onText { text ->
+            if (paragraphEnded) {
+                // If there's content following a paragraph, it needs upper padding
+                paragraphEnded = false
+                string.append("\n\n")
+            }
+
             if (visitedLinkUrl != null) {
                 // we are currently visiting a link. Capture all parts of the link text that
                 // may be split into multiple spans by Mastodon into one combined String
@@ -97,12 +111,8 @@ fun String.parseHtml(
             } else {
                 string.append(text)
             }
-
-
-
         }
         .build()
-
 
     val ksoupHtmlParser = KsoupHtmlParser(handler)
 
