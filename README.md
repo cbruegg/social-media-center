@@ -111,7 +111,8 @@ If a service requires sign-in, the client app will walk the user through this pr
 
 ## Features & Usage
 
-TODO.
+The app tries to be _just_ a reader. Tapping a post will take you to the corresponding native app of the service on your phone.
+This avoids feature creep.
 
 ## Architecture
 
@@ -125,4 +126,8 @@ As this was mainly a project for private use, the code is a bit of a mess.
 
 ## File Structure
 
-TODO.
+These are the most important files:
+
+- `/SocialMediaCenter`: Kotlin Multiplatform client and server component
+- `/TWRSS`: Small script that uses Twikit and outputs JSON to consume from Kotlin
+- `Dockerfile`: Builds and publishes the Docker image
