@@ -2,6 +2,8 @@
 
 Social Media Center is a multi-reader app for consuming feeds from Twitter/X, Mastodon and BlueSky. It is implemented in Kotlin Multiplatform for Android, iOS, Desktop and Web.
 
+![Screenshot]screenshot.jpg?raw=true "Screenshot")
+
 ## Setup
 
 Host the server component using Docker Compose. Adjust paths where needed:
