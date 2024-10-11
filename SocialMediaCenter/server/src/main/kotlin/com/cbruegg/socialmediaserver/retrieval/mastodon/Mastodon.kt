@@ -34,13 +34,14 @@ class Mastodon(
         }
 
         val (token) = clientConfiguration
-        val client = MastodonClient.Builder(user.serverWithoutScheme)
-            .accessToken(token.accessToken)
-            .build()
 
         val result =
-            runCatching { client.timelines.getHomeTimeline(Range(limit = 50)).execute().part }
-                .map { statuses -> statuses.map { it.toFeedItem(user.server) } }
+            runCatching {
+                val client = MastodonClient.Builder(user.serverWithoutScheme)
+                    .accessToken(token.accessToken)
+                    .build() // can throw
+                client.timelines.getHomeTimeline(Range(limit = 50)).execute().part
+            }.map { statuses -> statuses.map { it.toFeedItem(user.server) } }
 
         result.exceptionOrNull()?.printStackTrace()
         return result.getOrDefault(emptyList())
