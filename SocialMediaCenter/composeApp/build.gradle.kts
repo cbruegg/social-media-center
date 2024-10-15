@@ -57,7 +57,7 @@ kotlin {
 
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)
-            implementation(libs.clientside.ktor.client.okhttp)
+            implementation(libs.ktor.client.okhttp)
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.androidx.appcompat)
         }
@@ -68,10 +68,10 @@ kotlin {
             implementation(compose.material)
             implementation(compose.ui)
             implementation(compose.components.resources)
-            implementation(libs.clientside.ktor.client.core)
-            implementation(libs.clientside.ktor.client.auth)
-            implementation(libs.clientside.ktor.client.content.negotiation)
-            implementation(libs.clientside.ktor.serialization.kotlinx.json)
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.auth)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.datetime)
@@ -89,10 +89,10 @@ kotlin {
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
-            implementation(libs.clientside.ktor.client.okhttp)
+            implementation(libs.ktor.client.okhttp)
         }
         iosMain.dependencies {
-            implementation(libs.clientside.ktor.client.darwin)
+            implementation(libs.ktor.client.darwin)
         }
     }
 }
