@@ -11,7 +11,6 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentLength
 import io.ktor.http.contentType
 import io.ktor.http.decodeURLQueryComponent
-import io.ktor.server.application.call
 import io.ktor.server.auth.authenticate
 import io.ktor.server.http.content.staticFiles
 import io.ktor.server.response.respond
@@ -39,12 +38,12 @@ fun Routing.installRoutes(
 ) {
     authenticate {
         get("/json") {
-            val isCorsRestricted = context.request.queryParameters["isCorsRestricted"] == "true"
+            val isCorsRestricted = call.request.queryParameters["isCorsRestricted"] == "true"
             val mergedFeed = feedMonitor.getMergedFeed(isCorsRestricted)
             call.respond(mergedFeed)
         }
         get("/proxy") {
-            val urlToProxy = context.request.queryParameters["url"]
+            val urlToProxy = call.request.queryParameters["url"]
             if (urlToProxy == null) {
                 call.respond(HttpStatusCode.BadRequest)
                 return@get
@@ -66,9 +65,9 @@ fun Routing.installRoutes(
     }
 
     get("/authorize/mastodon/start") {
-        val instanceName = context.request.queryParameters["instanceName"]
+        val instanceName = call.request.queryParameters["instanceName"]
         val socialMediaCenterBaseUrl =
-            context.request.queryParameters["socialMediaCenterBaseUrl"]?.decodeURLQueryComponent()
+            call.request.queryParameters["socialMediaCenterBaseUrl"]?.decodeURLQueryComponent()
         if (instanceName == null || socialMediaCenterBaseUrl == null) {
             call.respond(HttpStatusCode.BadRequest)
             return@get
@@ -99,8 +98,8 @@ fun Routing.installRoutes(
     }
 
     get(MASTODON_COMPLETE_AUTH_URL) {
-        val authCode = context.request.queryParameters["code"]
-        val authSession = context.sessions.get<MastodonAuthSession>()
+        val authCode = call.request.queryParameters["code"]
+        val authSession = call.sessions.get<MastodonAuthSession>()
         if (authCode == null || authSession == null) {
             call.respond(HttpStatusCode.BadRequest)
             return@get
