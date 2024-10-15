@@ -17,10 +17,10 @@ emojiCompose = "1.5.0"
 junit = "4.13.2"
 kotlin = "2.0.20"
 ktor = "3.0.0"
-coroutines = "1.8.1"
-kotlinx-serialization-json = "1.6.3"
+coroutines = "1.9.0"
+kotlinx-serialization-json = "1.7.3"
 kotlinx-datetime = "0.6.0"
-coil = "3.0.0-alpha06"
+coil = "3.0.0-rc01"
 ksoup = "0.4.0"
 lifecycle = "2.8.0"
 logbackClassic = "1.5.6"
@@ -46,7 +46,7 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
 coil = { module = "io.coil-kt.coil3:coil", version.ref = "coil" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
-coil-network = { module = "io.coil-kt.coil3:coil-network-ktor", version.ref = "coil" }
+coil-network = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
 ksoup-html = { module = "com.mohamedrejeb.ksoup:ksoup-html", version.ref = "ksoup" }
 ksoup-entities = { module = "com.mohamedrejeb.ksoup:ksoup-entities", version.ref = "ksoup" }
 lifecycle-viewmodel = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel", version.ref = "lifecycle" }
