@@ -120,7 +120,7 @@ In the example above, this would be `/home/ubuntu/docker/socialmediaserver/data/
 
 ## Architecture
 
-As this was mainly a project for private use, the code is a bit of a mess.
+As this was mainly a project for private use, the code is a mess 💩 Please don't judge 😇
 
 - Feed retrieval happens only in the server-side component. The client loads a unified feed.
 - The server-side component talks to the Mastodon client API. By leveraging [SkyBridge](https://github.com/videah/SkyBridge), connecting to BlueSky is also possible.
