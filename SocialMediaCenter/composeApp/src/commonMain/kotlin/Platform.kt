@@ -9,8 +9,7 @@ interface Platform {
     fun createUriHandler(
         clipboardManager: ClipboardManager,
         defaultUriHandler: UriHandler,
-        inAppBrowserOpener: InAppBrowserOpener?,
-        socialMediaCenterBaseUrl: String
+        inAppBrowserOpener: InAppBrowserOpener?
     ): ContextualUriHandler? =
         null // TODO Implement for Android
 

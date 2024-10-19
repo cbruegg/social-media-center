@@ -33,8 +33,7 @@ object IOSPlatform : Platform {
     override fun createUriHandler(
         clipboardManager: ClipboardManager,
         defaultUriHandler: UriHandler,
-        inAppBrowserOpener: InAppBrowserOpener?,
-        socialMediaCenterBaseUrl: String
+        inAppBrowserOpener: InAppBrowserOpener?
     ): ContextualUriHandler =
         IOSUriHandler(clipboardManager, inAppBrowserOpener)
 }

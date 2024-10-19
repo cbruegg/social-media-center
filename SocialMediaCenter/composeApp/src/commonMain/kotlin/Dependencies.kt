@@ -99,7 +99,6 @@ fun getAppDependencies(): AppDependencies {
             clipboardManager,
             localUriHandler,
             inAppBrowserOpener,
-            socialMediaCenterBaseUrl,
         ) ?: localUriHandler.toContextualUriHandler(inAppBrowserOpener)
     }
     val authTokenRepository = remember { createAuthTokenRepository() }
