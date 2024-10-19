@@ -114,6 +114,10 @@ If a service requires sign-in, the client app will walk the user through this pr
 The app tries to be _just_ a reader. Tapping a post will take you to the corresponding native app of the service on your phone.
 This avoids feature creep.
 
+For security, the app will ask for the server's authentication token on first launch.
+You can find it in the `token.txt` of the server's data directory.
+In the example above, this would be `/home/ubuntu/docker/socialmediaserver/data/token.txt`.
+
 ## Architecture
 
 As this was mainly a project for private use, the code is a bit of a mess.
