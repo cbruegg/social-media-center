@@ -24,7 +24,7 @@ import kotlin.time.Duration.Companion.minutes
 
 class AppViewModel(
     apiFlow: Flow<Api?>,
-    private val authTokenRepository: ServerConfig
+    private val serverConfig: ServerConfig
 ) : ViewModel() {
     @Serializable
     sealed interface State {
@@ -187,8 +187,8 @@ class AppViewModel(
     }
 
     suspend fun onServerConfigEntered(token: String, baseUrl: String) {
-        authTokenRepository.updateToken(token)
-        authTokenRepository.updateBaseUrl(baseUrl)
+        serverConfig.updateToken(token)
+        serverConfig.updateBaseUrl(baseUrl)
 
         mutex.withLock {
             val lastState = state

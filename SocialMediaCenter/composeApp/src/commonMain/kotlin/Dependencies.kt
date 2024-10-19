@@ -23,7 +23,7 @@ import util.ContextualUriHandler
 import util.LocalInAppBrowserOpener
 import util.toContextualUriHandler
 
-private fun createApiHttpClient(authTokenRepository: ServerConfig) = HttpClient {
+private fun createApiHttpClient(serverConfig: ServerConfig) = HttpClient {
     install(Auth) {
         providers += object : AuthProvider {
             @Deprecated(
@@ -37,7 +37,7 @@ private fun createApiHttpClient(authTokenRepository: ServerConfig) = HttpClient 
                 request: HttpRequestBuilder,
                 authHeader: HttpAuthHeader?
             ) {
-                val tokenAsHttpHeader = authTokenRepository.tokenAsHttpHeader
+                val tokenAsHttpHeader = serverConfig.tokenAsHttpHeader
                 if (tokenAsHttpHeader != null) {
                     val (key, headerValue) = tokenAsHttpHeader
                     println("headerValue=$headerValue")

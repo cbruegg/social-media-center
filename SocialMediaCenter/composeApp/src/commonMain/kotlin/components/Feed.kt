@@ -57,7 +57,7 @@ import util.LocalContextualUriHandler
 @Composable
 fun Feed(
     feedItems: List<FeedItem>,
-    authTokenRepository: ServerConfig
+    serverConfig: ServerConfig
 ) {
     Box {
         val listState = rememberForeverFeedItemsListState(feedItems)
@@ -68,9 +68,9 @@ fun Feed(
                 itemContent = {
                     FeedItemRow(
                         feedItems[it],
-                        tokenAsHttpHeader = authTokenRepository.tokenAsHttpHeader,
+                        tokenAsHttpHeader = serverConfig.tokenAsHttpHeader,
                         Modifier.padding(top = if (it == 0) 8.dp else 0.dp),
-                        baseUrl = authTokenRepository.baseUrl.value ?: error("baseUrl not set")
+                        baseUrl = serverConfig.baseUrl.value ?: error("baseUrl not set")
                     )
                 }
             )
