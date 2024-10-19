@@ -78,8 +78,10 @@ fun App() {
 
             if (state is AppViewModel.State.ShowAuthDialog) {
                 AuthDialog(
-                    dependencies.authTokenRepository,
-                    onTokenEntered = { scope.launch { vm.onTokenEntered(it) } }
+                    dependencies.serverConfig,
+                    onServerConfigEntered = { token, baseUrl ->
+                        scope.launch { vm.onServerConfigEntered(token, baseUrl) }
+                    },
                 )
             }
 
@@ -101,11 +103,13 @@ fun App() {
                             for (unauthenticatedMastodonAccount in state.unauthenticatedMastodonAccounts) {
                                 UnauthenticatedMastodonAccountWarningCard(
                                     unauthenticatedMastodonAccount,
-                                    dependencies.uriHandler
+                                    dependencies.uriHandler,
+                                    baseUrl = dependencies.serverConfig.baseUrl.value
+                                        ?: error("At this point, the base URL should be set")
                                 )
                             }
 
-                            Feed(state.feedItems, dependencies.authTokenRepository)
+                            Feed(state.feedItems, dependencies.serverConfig)
                         }
                     }
                     PullRefreshIndicator(
@@ -122,7 +126,8 @@ fun App() {
 @Composable
 private fun UnauthenticatedMastodonAccountWarningCard(
     unauthenticatedMastodonAccount: MastodonUser,
-    uriHandler: ContextualUriHandler
+    uriHandler: ContextualUriHandler,
+    baseUrl: String
 ) {
     Card(modifier = Modifier.padding(8.dp)) {
         Column {
@@ -130,7 +135,7 @@ private fun UnauthenticatedMastodonAccountWarningCard(
             val displayName = "@${unauthenticatedMastodonAccount.username}@$instanceName"
             Text("Please authenticate your account $displayName")
             TextButton({
-                uriHandler.openUri("$socialMediaCenterBaseUrl/authorize/mastodon/start?instanceName=$instanceName&socialMediaCenterBaseUrl=${socialMediaCenterBaseUrl.encodeURLParameter()}")
+                uriHandler.openUri("$baseUrl/authorize/mastodon/start?instanceName=$instanceName&socialMediaCenterBaseUrl=${baseUrl.encodeURLParameter()}")
             }) {
                 Text("Authenticate")
             }

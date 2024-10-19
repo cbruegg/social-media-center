@@ -14,15 +14,16 @@ import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.get
 import io.ktor.http.auth.HttpAuthHeader
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
 import org.kodein.emoji.compose.EmojiUrl
-import security.AuthTokenRepository
+import security.ServerConfig
 import security.tokenAsHttpHeader
 import util.ContextualUriHandler
 import util.LocalInAppBrowserOpener
 import util.toContextualUriHandler
 
-private fun createApiHttpClient(authTokenRepository: AuthTokenRepository) = HttpClient {
+private fun createApiHttpClient(authTokenRepository: ServerConfig) = HttpClient {
     install(Auth) {
         providers += object : AuthProvider {
             @Deprecated(
@@ -65,13 +66,10 @@ private fun createGenericHttpClient() = HttpClient {
     install(HttpRequestRetry)
 }
 
-//val socialMediaCenterBaseUrl = "http://localhost:8000"
-val socialMediaCenterBaseUrl = "https://socialmediacenter.cbruegg.com"
+private fun createServerConfig() = ServerConfig(getPlatform().persistence)
 
-private fun createAuthTokenRepository() = AuthTokenRepository(getPlatform().persistence)
-
-private fun createApi(httpClient: HttpClient) = Api(
-    socialMediaCenterBaseUrl,
+private fun createApi(baseUrl: String, httpClient: HttpClient) = Api(
+    baseUrl,
     httpClient
 )
 
@@ -84,7 +82,7 @@ private fun createEmojiDownloader(httpClient: HttpClient): suspend (EmojiUrl) ->
 
 class AppDependencies(
     val uriHandler: ContextualUriHandler,
-    val authTokenRepository: AuthTokenRepository,
+    val serverConfig: ServerConfig,
     val downloadEmojis: suspend (EmojiUrl) -> ByteArray,
     val viewModel: AppViewModel
 )
@@ -101,14 +99,16 @@ fun getAppDependencies(): AppDependencies {
             inAppBrowserOpener,
         ) ?: localUriHandler.toContextualUriHandler(inAppBrowserOpener)
     }
-    val authTokenRepository = remember { createAuthTokenRepository() }
+    val serverConfig = remember { createServerConfig() }
     val downloadEmoji = remember { createEmojiDownloader(createGenericHttpClient()) }
     val viewModel = viewModel {
-        val api = createApi(createApiHttpClient(authTokenRepository))
-        AppViewModel(api, authTokenRepository)
+        val apiFlow = serverConfig.baseUrl.map { baseUrl ->
+            baseUrl?.let { createApi(baseUrl = it, createApiHttpClient(serverConfig)) }
+        }
+        AppViewModel(apiFlow, serverConfig)
     }
 
     return AppDependencies(
-        uriHandler, authTokenRepository, downloadEmoji, viewModel
+        uriHandler, serverConfig, downloadEmoji, viewModel
     )
 }

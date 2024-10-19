@@ -6,21 +6,25 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
-import security.AuthTokenRepository
+import security.ServerConfig
 import kotlin.concurrent.Volatile
 import kotlin.time.Duration.Companion.minutes
 
 class AppViewModel(
-    private val api: Api,
-    private val authTokenRepository: AuthTokenRepository
+    apiFlow: Flow<Api?>,
+    private val authTokenRepository: ServerConfig
 ) : ViewModel() {
     @Serializable
     sealed interface State {
@@ -40,6 +44,10 @@ class AppViewModel(
             val unauthenticatedMastodonAccounts: List<MastodonUser> = emptyList()
         ) : State
     }
+
+    // This is a flow because the baseUrl is configurable by the user
+    private val apiFlow =
+        apiFlow.stateIn(viewModelScope, SharingStarted.Eagerly, initialValue = null)
 
     private val mutex = Mutex()
     private val _stateFlow = MutableStateFlow<State>(State.initial)
@@ -68,6 +76,14 @@ class AppViewModel(
                 withTimeoutOrNull(1.minutes) { refreshRequestChannel.receive() }
             }
         }
+        viewModelScope.launch {
+            // Every time the API (base URL) changes, refresh
+            apiFlow.onEach { api ->
+                if (api != null) {
+                    requestRefresh()
+                }
+            }
+        }
     }
 
     fun onPause() {
@@ -84,6 +100,14 @@ class AppViewModel(
     }
 
     private suspend fun doRefresh() = coroutineScope {
+        val api = apiFlow.value
+
+        if (api == null) {
+            println("User has not configured base URL yet")
+            state = State.ShowAuthDialog()
+            return@coroutineScope
+        }
+
         val skipRefresh = mutex.withLock {
             val (skipRefresh, nextState) = when (val state = state) {
                 is State.InitialLoad -> false to state.copy(started = true)
@@ -126,7 +150,6 @@ class AppViewModel(
                     is State.ShowAuthDialog -> error("Should not be refreshing in $state")
                 }
 
-
                 is ApiResponse.Unauthorized -> state = State.ShowAuthDialog()
                 is ApiResponse.ErrorStatus -> state = when (val state = state) {
                     is State.InitialLoad -> State.Loaded(
@@ -163,8 +186,9 @@ class AppViewModel(
         }
     }
 
-    suspend fun onTokenEntered(token: String) {
+    suspend fun onServerConfigEntered(token: String, baseUrl: String) {
         authTokenRepository.updateToken(token)
+        authTokenRepository.updateBaseUrl(baseUrl)
 
         mutex.withLock {
             val lastState = state

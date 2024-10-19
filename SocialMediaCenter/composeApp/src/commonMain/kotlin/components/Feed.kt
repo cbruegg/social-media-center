@@ -38,7 +38,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.PlatformContext
-import coil3.annotation.ExperimentalCoilApi
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.network.NetworkHeaders
@@ -51,15 +50,14 @@ import getPlatform
 import kotlinx.coroutines.launch
 import org.kodein.emoji.compose.WithPlatformEmoji
 import persistence.rememberForeverLazyListState
-import security.AuthTokenRepository
+import security.ServerConfig
 import security.tokenAsHttpHeader
-import socialMediaCenterBaseUrl
 import util.LocalContextualUriHandler
 
 @Composable
 fun Feed(
     feedItems: List<FeedItem>,
-    authTokenRepository: AuthTokenRepository
+    authTokenRepository: ServerConfig
 ) {
     Box {
         val listState = rememberForeverFeedItemsListState(feedItems)
@@ -71,7 +69,8 @@ fun Feed(
                     FeedItemRow(
                         feedItems[it],
                         tokenAsHttpHeader = authTokenRepository.tokenAsHttpHeader,
-                        Modifier.padding(top = if (it == 0) 8.dp else 0.dp)
+                        Modifier.padding(top = if (it == 0) 8.dp else 0.dp),
+                        baseUrl = authTokenRepository.baseUrl.value ?: error("baseUrl not set")
                     )
                 }
             )
@@ -116,7 +115,8 @@ private fun FeedItemRow(
     feedItem: FeedItem,
     tokenAsHttpHeader: Pair<String, String>?,
     modifier: Modifier = Modifier,
-    showRepost: Boolean = true
+    baseUrl: String,
+    showRepost: Boolean = true,
 ) {
     val uriHandler = LocalContextualUriHandler.current
 
@@ -127,7 +127,13 @@ private fun FeedItemRow(
         .fillMaxWidth()
         .let {
             if (link != null) {
-                it.clickable { uriHandler.openPostUri(link, feedItem.platform, feedItem.isSkyBridgePost) }
+                it.clickable {
+                    uriHandler.openPostUri(
+                        link,
+                        feedItem.platform,
+                        feedItem.isSkyBridgePost
+                    )
+                }
             } else {
                 it
             }
@@ -145,7 +151,8 @@ private fun FeedItemRow(
                 model = createProxiedImageRequest(
                     LocalPlatformContext.current,
                     feedItem.authorImageUrl,
-                    tokenAsHttpHeader
+                    tokenAsHttpHeader,
+                    baseUrl
                 ),
                 contentDescription = feedItem.author,
                 modifier = Modifier
@@ -160,13 +167,14 @@ private fun FeedItemRow(
                     Text(text, inlineContent = content, fontWeight = FontWeight.Bold)
                 }
                 FeedItemContentText(feedItem)
-                FeedItemMediaAttachments(feedItem, tokenAsHttpHeader)
+                FeedItemMediaAttachments(feedItem, tokenAsHttpHeader, baseUrl)
                 val repost = feedItem.repost
                 if (repost != null && showRepost) {
                     FeedItemRow(
                         repost,
                         tokenAsHttpHeader,
                         modifier = Modifier.padding(8.dp),
+                        baseUrl = baseUrl,
                         showRepost = false // to avoid deep nesting
                     )
                 }
@@ -181,27 +189,33 @@ private fun FeedItemRow(
 }
 
 @Composable
-private fun FeedItemMediaAttachments(feedItem: FeedItem, tokenAsHttpHeader: Pair<String, String>?) {
+private fun FeedItemMediaAttachments(
+    feedItem: FeedItem,
+    tokenAsHttpHeader: Pair<String, String>?,
+    baseUrl: String
+) {
     val attachments = feedItem.mediaAttachments
     LazyRow {
         items(
             attachments.size,
             key = { attachments[it].previewImageUrl },
-            itemContent = { MediaAttachment(attachments[it], tokenAsHttpHeader) })
+            itemContent = { MediaAttachment(attachments[it], tokenAsHttpHeader, baseUrl) })
     }
 }
 
 @Composable
 private fun MediaAttachment(
     attachment: MediaAttachment,
-    tokenAsHttpHeader: Pair<String, String>?
+    tokenAsHttpHeader: Pair<String, String>?,
+    baseUrl: String
 ) {
     Box {
         AsyncImage(
             model = createProxiedImageRequest(
                 LocalPlatformContext.current,
                 attachment.previewImageUrl,
-                tokenAsHttpHeader
+                tokenAsHttpHeader,
+                baseUrl
             ),
             contentDescription = "feed item media attachment",
             contentScale = ContentScale.Crop,
@@ -229,14 +243,14 @@ private fun MediaAttachment(
     }
 }
 
-@OptIn(ExperimentalCoilApi::class)
 private fun createProxiedImageRequest(
     context: PlatformContext,
     url: String?,
-    tokenAsHttpHeader: Pair<String, String>?
+    tokenAsHttpHeader: Pair<String, String>?,
+    baseUrl: String
 ) = ImageRequest.Builder(context)
     .data(url?.let {
-        getPlatform().corsProxiedUrlToAbsoluteUrl(socialMediaCenterBaseUrl, it)
+        getPlatform().corsProxiedUrlToAbsoluteUrl(baseUrl, it)
     })
     .also {
         if (tokenAsHttpHeader != null) {

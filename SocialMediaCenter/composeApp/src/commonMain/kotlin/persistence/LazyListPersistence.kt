@@ -7,7 +7,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.saveable.rememberSaveable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import kotlinx.serialization.builtins.serializer
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -26,7 +25,7 @@ fun rememberForeverLazyListState(
     initialFirstVisibleItemScrollOffset: Int = 0
 ): LazyListState {
     val scrollState = rememberSaveable(saver = LazyListState.Saver) {
-        val savedItemId = persistence.load(key, String.serializer())
+        val savedItemId = persistence.load<String>(key)
         val savedIndex = savedItemId?.let { indexOfItem(it) } ?: initialFirstVisibleItemIndex
         LazyListState(
             savedIndex,
@@ -38,14 +37,14 @@ fun rememberForeverLazyListState(
             delay(5.seconds)
             val lastIndex = scrollState.firstVisibleItemIndex
             val itemId = idOfItemAt(lastIndex)
-            persistence.save(key, itemId, String.serializer())
+            persistence.save(key, itemId)
         }
     }
     DisposableEffect(idOfItemAt) {
         onDispose {
             val lastIndex = scrollState.firstVisibleItemIndex
             val itemId = idOfItemAt(lastIndex)
-            persistence.save(key, itemId, String.serializer())
+            persistence.save(key, itemId)
         }
     }
     return scrollState
