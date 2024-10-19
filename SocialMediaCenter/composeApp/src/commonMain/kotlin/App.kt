@@ -109,7 +109,11 @@ fun App() {
                                 )
                             }
 
-                            Feed(state.feedItems, dependencies.serverConfig)
+                            Feed(
+                                state.feedItems,
+                                dependencies.serverConfig,
+                                onConfigButtonClick = { vm.onConfigButtonClick() }
+                            )
                         }
                     }
                     PullRefreshIndicator(

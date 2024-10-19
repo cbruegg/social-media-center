@@ -34,7 +34,7 @@ class AppViewModel(
 
         data class InitialLoad(val started: Boolean) : State
 
-        data class ShowAuthDialog(val tokenEntered: Boolean = false) : State
+        data class ShowAuthDialog(val configEntered: Boolean = false) : State
 
         data class Loaded(
             val feedItems: List<FeedItem>,
@@ -111,7 +111,7 @@ class AppViewModel(
         val skipRefresh = mutex.withLock {
             val (skipRefresh, nextState) = when (val state = state) {
                 is State.InitialLoad -> false to state.copy(started = true)
-                is State.ShowAuthDialog -> !state.tokenEntered to State.InitialLoad(started = true)
+                is State.ShowAuthDialog -> !state.configEntered to State.InitialLoad(started = true)
                 is State.Loaded -> state.isLoading to state.copy(isLoading = true)
             }
             state = nextState
@@ -147,7 +147,7 @@ class AppViewModel(
                         unauthenticatedMastodonAccounts = unauthenticatedMastodonAccounts
                     )
 
-                    is State.ShowAuthDialog -> error("Should not be refreshing in $state")
+                    is State.ShowAuthDialog -> return@coroutineScope // abort refresh
                 }
 
                 is ApiResponse.Unauthorized -> state = State.ShowAuthDialog()
@@ -164,7 +164,7 @@ class AppViewModel(
                         unauthenticatedMastodonAccounts = unauthenticatedMastodonAccounts
                     )
 
-                    is State.ShowAuthDialog -> error("Should not be refreshing in $state")
+                    is State.ShowAuthDialog -> return@coroutineScope // abort refresh
                 }
 
                 is ApiResponse.CaughtException -> state = when (val state = state) {
@@ -180,7 +180,7 @@ class AppViewModel(
                         unauthenticatedMastodonAccounts = unauthenticatedMastodonAccounts
                     )
 
-                    is State.ShowAuthDialog -> error("Should not be refreshing in $state")
+                    is State.ShowAuthDialog -> return@coroutineScope // abort refresh
                 }
             }
         }
@@ -197,7 +197,7 @@ class AppViewModel(
                 return@withLock
             }
 
-            state = lastState.copy(tokenEntered = true)
+            state = lastState.copy(configEntered = true)
         }
 
         requestRefresh()
@@ -222,5 +222,9 @@ class AppViewModel(
             is State.Loaded -> state.copy(showLastLoadFailurePopup = false)
             else -> state
         }
+    }
+
+    fun onConfigButtonClick() {
+        state = State.ShowAuthDialog()
     }
 }

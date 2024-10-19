@@ -3,8 +3,6 @@ package components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -26,6 +24,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -57,7 +56,8 @@ import util.LocalContextualUriHandler
 @Composable
 fun Feed(
     feedItems: List<FeedItem>,
-    serverConfig: ServerConfig
+    serverConfig: ServerConfig,
+    onConfigButtonClick: () -> Unit
 ) {
     Box {
         val listState = rememberForeverFeedItemsListState(feedItems)
@@ -76,6 +76,7 @@ fun Feed(
             )
         }
         JumpToTopButton(listState, Modifier.align(Alignment.BottomStart))
+        ConfigButton(listState, onConfigButtonClick, Modifier.align(Alignment.BottomStart))
     }
 }
 
@@ -85,8 +86,8 @@ private fun JumpToTopButton(listState: LazyListState, modifier: Modifier = Modif
     AnimatedVisibility(
         modifier = modifier,
         visible = listState.firstVisibleItemIndex != 0,
-        enter = fadeIn() + slideInVertically { it / 2 },
-        exit = slideOutVertically { it / 2 } + fadeOut()
+        enter = fadeIn(),
+        exit = fadeOut()
     ) {
         FloatingActionButton(
             onClick = { scope.launch { listState.animateScrollToItem(0) } },
@@ -95,6 +96,26 @@ private fun JumpToTopButton(listState: LazyListState, modifier: Modifier = Modif
                 .size(48.dp)
         ) {
             Icon(Icons.Filled.KeyboardArrowUp, "Jump up")
+        }
+    }
+}
+
+@Composable
+private fun ConfigButton(listState: LazyListState, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    AnimatedVisibility(
+        modifier = modifier,
+        visible = listState.firstVisibleItemIndex == 0,
+        enter = fadeIn(),
+        exit = fadeOut()
+    ) {
+        FloatingActionButton(
+            onClick,
+            backgroundColor = Color.LightGray,
+            modifier = Modifier
+                .padding(16.dp)
+                .size(48.dp)
+        ) {
+            Icon(Icons.Filled.Settings, "Settings")
         }
     }
 }
