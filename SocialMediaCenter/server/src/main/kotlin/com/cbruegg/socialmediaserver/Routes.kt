@@ -25,8 +25,6 @@ import io.ktor.utils.io.copyAndClose
 import social.bigbone.MastodonClient
 import java.io.File
 
-// TODO: Add authentication
-
 private const val MASTODON_COMPLETE_AUTH_URL = "/authorize/mastodon/complete"
 
 fun Routing.installRoutes(
