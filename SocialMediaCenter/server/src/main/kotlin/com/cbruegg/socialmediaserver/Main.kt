@@ -1,21 +1,26 @@
 package com.cbruegg.socialmediaserver
 
 import com.cbruegg.socialmediaserver.retrieval.Twitter
+import com.cbruegg.socialmediaserver.retrieval.bluesky.Bluesky
 import com.cbruegg.socialmediaserver.retrieval.mastodon.Mastodon
 import com.cbruegg.socialmediaserver.retrieval.mastodon.MastodonCredentialsRepository
 import com.cbruegg.socialmediaserver.retrieval.security.Auth
-import io.ktor.client.*
-import io.ktor.client.engine.cio.*
-import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
-import io.ktor.server.application.*
-import io.ktor.server.auth.*
-import io.ktor.server.engine.*
-import io.ktor.server.netty.*
-import io.ktor.server.plugins.contentnegotiation.*
-import io.ktor.server.plugins.cors.routing.*
-import io.ktor.server.routing.*
-import io.ktor.server.sessions.*
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
+import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.application.install
+import io.ktor.server.auth.Authentication
+import io.ktor.server.auth.UserIdPrincipal
+import io.ktor.server.auth.bearer
+import io.ktor.server.engine.embeddedServer
+import io.ktor.server.netty.Netty
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.plugins.cors.routing.CORS
+import io.ktor.server.routing.routing
+import io.ktor.server.sessions.Sessions
+import io.ktor.server.sessions.cookie
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
@@ -86,7 +91,8 @@ private fun createFeedMonitor(
 ): FeedMonitor {
     val platforms = listOf(
         Twitter(sources.twitterLists, twitterScriptLocation, dataLocation),
-        Mastodon(sources.mastodonFollowings, mastodonCredentialsRepository)
+        Mastodon(sources.mastodonFollowings, mastodonCredentialsRepository),
+        Bluesky(sources.blueskyFollowings)
     )
     return FeedMonitor(platforms)
 }

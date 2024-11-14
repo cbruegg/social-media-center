@@ -31,4 +31,4 @@ enum class MediaType {
     Image, Video, Gifv
 }
 
-enum class PlatformId { Twitter, Mastodon }
+enum class PlatformId { Twitter, Mastodon, Bluesky }
