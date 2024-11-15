@@ -24,15 +24,17 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import sh.christian.ozone.XrpcBlueskyApi
 import sh.christian.ozone.api.Uri
+
+// TODO Fix links in https://bsky.app/profile/cbruegg.com/post/3lazcztqnhk2z
+// TODO Subscribe to followings feed to avoid seeing mentions of users not followed: https://bsky.app/profile/joemerrick.bsky.social/post/3lazebeebdc22
 
 class Bluesky(private val feedsOf: List<BlueskyAccount>) : SocialPlatform {
     override val platformId = PlatformId.Bluesky
 
-    override suspend fun getFeed(): List<FeedItem> {
-        return feedsOf.flatMap { getFeed(it) }
-    }
+    override suspend fun getFeed(): List<FeedItem> = feedsOf.flatMap { getFeed(it) }
 
     private suspend fun getFeed(account: BlueskyAccount): List<FeedItem> {
         try {
@@ -79,7 +81,7 @@ private fun FeedViewPost.toFeedItem(): FeedItem {
             ""
         else
             mentionPrefix + (record["text"]?.jsonPrimitive?.contentOrNull ?: ""),
-        author = reasonRepost?.by?.handle?.handle ?: post.author.handle.handle,
+        author = "@" + (reasonRepost?.by?.handle?.handle ?: post.author.handle.handle),
         authorImageUrl = reasonRepost?.by?.avatar?.uri ?: post.author.avatar?.uri,
         id = post.cid.cid,
         published = reasonRepost?.by?.createdAt ?: record["createdAt"]!!.jsonPrimitive.content.let(
@@ -90,7 +92,7 @@ private fun FeedViewPost.toFeedItem(): FeedItem {
         repost = post.embed?.extractQuotedFeedItem() ?: reasonRepost?.let {
             FeedItem(
                 text = record["text"]?.jsonPrimitive?.contentOrNull ?: "",
-                author = post.author.handle.handle,
+                author = "@" + post.author.handle.handle,
                 authorImageUrl = post.author.avatar?.uri,
                 id = post.cid.cid,
                 published = record["createdAt"]!!.jsonPrimitive.content.let(Instant::parse),
@@ -111,11 +113,14 @@ private fun PostViewEmbedUnion?.extractQuotedFeedItem(): FeedItem? {
         is PostViewEmbedUnion.RecordView ->
             when (val record = value.record) {
                 is RecordViewRecordUnion.ViewRecord -> FeedItem(
-                    text = record.value.value.value.jsonObject["text"]?.jsonPrimitive?.content ?: "",
+                    text = record.value.value.value.jsonObject["text"]?.jsonPrimitive?.content
+                        ?: "",
                     author = record.value.author.handle.handle,
                     authorImageUrl = record.value.author.avatar?.uri,
                     id = record.value.cid.cid,
-                    published = record.value.value.value.jsonObject["createdAt"]!!.jsonPrimitive.content.let(Instant::parse),
+                    published = record.value.value.value.jsonObject["createdAt"]!!.jsonPrimitive.content.let(
+                        Instant::parse
+                    ),
                     link = record.value.bskyAppUri,
                     platform = PlatformId.Bluesky,
                     repost = null,
@@ -129,11 +134,14 @@ private fun PostViewEmbedUnion?.extractQuotedFeedItem(): FeedItem? {
         is PostViewEmbedUnion.RecordWithMediaView ->
             when (val record = value.record.record) {
                 is RecordViewRecordUnion.ViewRecord -> FeedItem(
-                    text = record.value.value.value.jsonObject["text"]?.jsonPrimitive?.content ?: "",
+                    text = record.value.value.value.jsonObject["text"]?.jsonPrimitive?.content
+                        ?: "",
                     author = record.value.author.handle.handle,
                     authorImageUrl = record.value.author.avatar?.uri,
                     id = record.value.cid.cid,
-                    published = record.value.value.value.jsonObject["createdAt"]!!.jsonPrimitive.content.let(Instant::parse),
+                    published = record.value.value.value.jsonObject["createdAt"]!!.jsonPrimitive.content.let(
+                        Instant::parse
+                    ),
                     link = record.value.bskyAppUri,
                     platform = PlatformId.Bluesky,
                     repost = null,
@@ -148,8 +156,20 @@ private fun PostViewEmbedUnion?.extractQuotedFeedItem(): FeedItem? {
     }
 }
 
+private val gifvHosts =
+    listOf("giphy.com" /* including www., media., media0-4. */, "media.tenor.com")
+
 private fun PostViewEmbedUnion.toMediaAttachments(): List<MediaAttachment> = when (this) {
-    is PostViewEmbedUnion.ExternalView -> emptyList() // some external link, not a media attachment
+    is PostViewEmbedUnion.ExternalView ->
+        if (gifvHosts.any { value.external.uri.uri.toHttpUrl().host.endsWith(it) } && value.external.thumb != null) listOf(
+            MediaAttachment(
+                type = MediaType.Gifv,
+                previewImageUrl = value.external.thumb!!.uri,
+                fullUrl = value.external.uri.uri
+            )
+        )
+        else emptyList()
+
     is PostViewEmbedUnion.ImagesView -> value.images.map { image ->
         MediaAttachment(
             type = MediaType.Image,
@@ -175,7 +195,16 @@ private fun PostViewEmbedUnion.toMediaAttachments(): List<MediaAttachment> = whe
 }
 
 private fun RecordViewRecordEmbedUnion.toMediaAttachments(): List<MediaAttachment> = when (this) {
-    is RecordViewRecordEmbedUnion.ExternalView -> emptyList() // external link, not a media attachment
+    is RecordViewRecordEmbedUnion.ExternalView ->
+        if (gifvHosts.any { value.external.uri.uri.toHttpUrl().host.endsWith(it) } && value.external.thumb != null) listOf(
+            MediaAttachment(
+                type = MediaType.Gifv,
+                previewImageUrl = value.external.thumb!!.uri,
+                fullUrl = value.external.uri.uri
+            )
+        )
+        else emptyList()
+
     is RecordViewRecordEmbedUnion.ImagesView -> value.images.map { image ->
         MediaAttachment(
             type = MediaType.Image,
