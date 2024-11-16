@@ -17,6 +17,7 @@ import com.cbruegg.socialmediaserver.shared.FeedItem
 import com.cbruegg.socialmediaserver.shared.MediaAttachment
 import com.cbruegg.socialmediaserver.shared.MediaType
 import com.cbruegg.socialmediaserver.shared.PlatformId
+import com.cbruegg.socialmediaserver.shared.RepostMeta
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.DefaultRequest
 import io.ktor.http.takeFrom
@@ -96,9 +97,6 @@ private suspend fun XrpcBlueskyApi.getAllFollows(of: AtIdentifier): List<Profile
     return follows
 }
 
-private val FeedViewPost.isRepost: Boolean
-    get() = reason is FeedViewPostReasonUnion.ReasonRepost
-
 private fun String.expandFacets(facets: JsonArray?): String {
     if (facets == null) return this
 
@@ -135,35 +133,25 @@ private fun FeedViewPost.toFeedItem(): FeedItem {
         null -> ""
     }
     return FeedItem(
-        text = if (isRepost)
-            ""
-        else
-            mentionPrefix + (
-                    record["text"]?.jsonPrimitive?.contentOrNull?.expandFacets(post.record.value.jsonObject["facets"]?.jsonArray)
-                        ?: ""
-                    ),
-        author = "@" + (reasonRepost?.by?.handle?.handle ?: post.author.handle.handle),
-        authorImageUrl = reasonRepost?.by?.avatar?.uri ?: post.author.avatar?.uri,
+        text = mentionPrefix + (
+                record["text"]?.jsonPrimitive?.contentOrNull?.expandFacets(post.record.value.jsonObject["facets"]?.jsonArray)
+                    ?: ""
+                ),
+        author = "@" + post.author.handle.handle,
+        authorImageUrl = post.author.avatar?.uri,
         id = post.cid.cid,
-        published = reasonRepost?.indexedAt ?: record["createdAt"]!!.jsonPrimitive.content.let(
-            Instant::parse
-        ),
+        published = record["createdAt"]!!.jsonPrimitive.content.let(Instant::parse),
         link = post.bskyAppUri,
         platform = PlatformId.Bluesky,
-        repost = reasonRepost?.let {
-            FeedItem(
-                text = record["text"]?.jsonPrimitive?.contentOrNull?.expandFacets(record["facets"]?.jsonArray) ?: "",
-                author = "@" + post.author.handle.handle,
-                authorImageUrl = post.author.avatar?.uri,
-                id = post.cid.cid,
-                published = record["createdAt"]!!.jsonPrimitive.content.let(Instant::parse),
-                link = post.bskyAppUri,
-                platform = PlatformId.Bluesky,
-                repost = null,
-                mediaAttachments = post.embed?.toMediaAttachments() ?: emptyList()
+        quotedPost = post.embed?.extractQuotedFeedItem(),
+        mediaAttachments = post.embed?.toMediaAttachments() ?: emptyList(),
+        repostMeta = reasonRepost?.let {
+            RepostMeta(
+                repostingAuthor = "@" + reasonRepost.by.handle.handle,
+                repostingAuthorImageUrl = reasonRepost.by.avatar?.uri,
+                timeOfRepost = reasonRepost.indexedAt
             )
-        } ?: post.embed?.extractQuotedFeedItem(),
-        mediaAttachments = post.embed?.toMediaAttachments() ?: emptyList()
+        }
     )
 }
 
@@ -185,7 +173,7 @@ private fun PostViewEmbedUnion?.extractQuotedFeedItem(): FeedItem? {
                         ),
                         link = record.value.bskyAppUri,
                         platform = PlatformId.Bluesky,
-                        repost = null,
+                        quotedPost = null,
                         mediaAttachments = emptyList()
                     )
                 }
@@ -209,7 +197,7 @@ private fun PostViewEmbedUnion?.extractQuotedFeedItem(): FeedItem? {
                         ),
                         link = record.value.bskyAppUri,
                         platform = PlatformId.Bluesky,
-                        repost = null,
+                        quotedPost = null,
                         mediaAttachments = record.value.embeds.flatMap { it.toMediaAttachments() } // TODO Test with https://bsky.app/profile/chenchenzh.bsky.social/post/3lawca5ebk223
                     )
                 }

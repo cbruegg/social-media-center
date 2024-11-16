@@ -133,7 +133,8 @@ def tweet_to_feed_item(tweet: twikit.Tweet):
         'link': link,
         'platform': 'Twitter',
         'mediaAttachments': media_attachments,
-        'repost': tweet_to_feed_item(tweet.quote) if tweet.quote is not None else None
+        'quotedPost': tweet_to_feed_item(tweet.quote) if tweet.quote is not None else None,
+        'repostMeta': None
     }
 
 

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,6 +25,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -45,6 +47,7 @@ import coil3.request.ImageRequest
 import com.cbruegg.socialmediaserver.shared.FeedItem
 import com.cbruegg.socialmediaserver.shared.MediaAttachment
 import com.cbruegg.socialmediaserver.shared.MediaType
+import com.cbruegg.socialmediaserver.shared.RepostMeta
 import getPlatform
 import kotlinx.coroutines.launch
 import org.kodein.emoji.compose.WithPlatformEmoji
@@ -101,7 +104,11 @@ private fun JumpToTopButton(listState: LazyListState, modifier: Modifier = Modif
 }
 
 @Composable
-private fun ConfigButton(listState: LazyListState, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun ConfigButton(
+    listState: LazyListState,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     AnimatedVisibility(
         modifier = modifier,
         visible = listState.firstVisibleItemIndex == 0,
@@ -143,69 +150,119 @@ private fun FeedItemRow(
 
     val formattedDate = remember(feedItem) { getPlatform().formatFeedItemDate(feedItem.published) }
     val link = feedItem.link
+    val repostMeta = feedItem.repostMeta
 
     Card(modifier = modifier
         .fillMaxWidth()
         .let {
-            if (link != null) {
-                it.clickable {
-                    uriHandler.openPostUri(
-                        link,
-                        feedItem.platform
-                    )
-                }
-            } else {
+            if (link != null)
+                it.clickable { uriHandler.openPostUri(link, feedItem.platform) }
+            else
                 it
-            }
         }
     ) {
-        Row(
-            modifier = Modifier.padding(
-                start = 16.dp,
-                top = 8.dp,
-                end = 16.dp,
-                bottom = 16.dp
-            )
+        Column(
+            modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 16.dp)
         ) {
-            AsyncImage(
-                model = createProxiedImageRequest(
-                    LocalPlatformContext.current,
-                    feedItem.authorImageUrl,
+            if (repostMeta != null) {
+                RepostInfo(
+                    Modifier.padding(start = 64.dp),
+                    repostMeta,
                     tokenAsHttpHeader,
                     baseUrl
-                ),
-                contentDescription = feedItem.author,
-                modifier = Modifier
-                    .padding(8.dp)
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .border(2.dp, Color.Gray, CircleShape)
-            )
-            Column {
-                // Using WithPlatformEmoji for emoji support on WASM
-                WithPlatformEmoji(feedItem.author) { text, content ->
-                    Text(text, inlineContent = content, fontWeight = FontWeight.Bold)
-                }
-                FeedItemContentText(feedItem)
-                FeedItemMediaAttachments(feedItem, tokenAsHttpHeader, baseUrl)
-                val repost = feedItem.repost
-                if (repost != null && showRepost) {
-                    FeedItemRow(
-                        repost,
-                        tokenAsHttpHeader,
-                        modifier = Modifier.padding(8.dp),
-                        baseUrl = baseUrl,
-                        showRepost = false // to avoid deep nesting
+                )
+            }
+            Row {
+                AuthorAvatar(
+                    feedItem.author,
+                    feedItem.authorImageUrl,
+                    tokenAsHttpHeader,
+                    baseUrl,
+                    Modifier.size(64.dp).padding(8.dp)
+                )
+                Column {
+                    // Using WithPlatformEmoji for emoji support on WASM
+                    AuthorName(feedItem)
+                    FeedItemContentText(feedItem)
+                    FeedItemMediaAttachments(feedItem, tokenAsHttpHeader, baseUrl)
+                    val repost = feedItem.quotedPost
+                    if (repost != null && showRepost) {
+                        FeedItemRow(
+                            repost,
+                            tokenAsHttpHeader,
+                            modifier = Modifier.padding(8.dp),
+                            baseUrl = baseUrl,
+                            showRepost = false // to avoid deep nesting
+                        )
+                    }
+                    Text(
+                        text = formattedDate,
+                        color = Color.Gray,
+                        fontSize = 12.sp
                     )
                 }
-                Text(
-                    text = formattedDate,
-                    color = Color.Gray,
-                    fontSize = 12.sp
-                )
             }
         }
     }
+}
+
+@Composable
+fun RepostInfo(
+    modifier: Modifier = Modifier,
+    repostMeta: RepostMeta,
+    tokenAsHttpHeader: Pair<String, String>?,
+    baseUrl: String,
+) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Icon(Icons.Filled.Repeat, "Repost Icon", modifier = Modifier.size(20.dp))
+        AuthorAvatar(
+            repostMeta.repostingAuthor,
+            repostMeta.repostingAuthorImageUrl,
+            tokenAsHttpHeader,
+            baseUrl,
+            Modifier.padding(start = 8.dp).size(20.dp)
+        )
+        WithPlatformEmoji(repostMeta.repostingAuthor) { text, content ->
+            Text(
+                text,
+                inlineContent = content,
+                modifier = Modifier.padding(start = 8.dp)
+                    .align(Alignment.CenterVertically)
+                    .height(28.dp),
+                color = Color.DarkGray,
+                fontSize = 14.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun AuthorName(feedItem: FeedItem) {
+    WithPlatformEmoji(feedItem.author) { text, content ->
+        Text(text, inlineContent = content, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun AuthorAvatar(
+    author: String,
+    authorImageUrl: String?,
+    tokenAsHttpHeader: Pair<String, String>?,
+    baseUrl: String,
+    modifier: Modifier = Modifier
+) {
+    AsyncImage(
+        model = createProxiedImageRequest(
+            LocalPlatformContext.current,
+            authorImageUrl,
+            tokenAsHttpHeader,
+            baseUrl
+        ),
+        contentDescription = author,
+        modifier = modifier
+            .clip(CircleShape)
+            .border(2.dp, Color.Gray, CircleShape)
+    )
 }
 
 @Composable

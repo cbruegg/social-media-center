@@ -12,8 +12,16 @@ data class FeedItem(
     val published: Instant,
     val link: String?,
     val platform: PlatformId,
-    val repost: FeedItem?,
-    val mediaAttachments: List<MediaAttachment> = emptyList()
+    val quotedPost: FeedItem?,
+    val mediaAttachments: List<MediaAttachment> = emptyList(),
+    val repostMeta: RepostMeta? = null
+)
+
+@Serializable
+data class RepostMeta(
+    val repostingAuthor: String,
+    val repostingAuthorImageUrl: String?,
+    val timeOfRepost: Instant
 )
 
 @Serializable

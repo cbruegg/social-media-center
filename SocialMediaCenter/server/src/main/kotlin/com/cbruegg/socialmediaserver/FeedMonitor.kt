@@ -75,7 +75,7 @@ class FeedMonitor(
                 else
                     it
             }
-            .sortedByDescending { it.published }
+            .sortedByDescending { it.repostMeta?.timeOfRepost ?: it.published }
     }
 }
 

@@ -6,6 +6,7 @@ import com.cbruegg.socialmediaserver.shared.MastodonUser
 import com.cbruegg.socialmediaserver.shared.MediaAttachment
 import com.cbruegg.socialmediaserver.shared.MediaType
 import com.cbruegg.socialmediaserver.shared.PlatformId
+import com.cbruegg.socialmediaserver.shared.RepostMeta
 import com.cbruegg.socialmediaserver.shared.serverWithoutScheme
 import kotlinx.datetime.toKotlinInstant
 import social.bigbone.MastodonClient
@@ -52,6 +53,7 @@ class Mastodon(
 private fun Status.toFeedItem(userServerBaseUrl: String): FeedItem {
     val id = id.takeIf { it.isNotEmpty() }
     val account = account
+    val reblog = reblog
     val url = if (id != null && account != null) {
         "$userServerBaseUrl/@${account.acct}/$id"
     } else if (url.isNotEmpty()) {
@@ -59,17 +61,27 @@ private fun Status.toFeedItem(userServerBaseUrl: String): FeedItem {
     } else {
         uri
     }
-    return FeedItem(
-        text = content,
-        author = account?.acct?.let { "@$it" } ?: "MISSING_ACCOUNT",
-        authorImageUrl = account?.avatarStatic,
-        id = id ?: uri,
-        published = createdAt.mostPreciseOrFallback(Instant.now()).toKotlinInstant(),
-        link = url.takeIf { it.isNotEmpty() },
-        platform = PlatformId.Mastodon,
-        repost = reblog?.toFeedItem(userServerBaseUrl),
-        mediaAttachments = mediaAttachments.mapNotNull { it.toMediaAttachment() }
-    )
+    if (content.isEmpty() && reblog != null) {
+        return reblog.toFeedItem(userServerBaseUrl).copy(
+            repostMeta = RepostMeta(
+                repostingAuthor = account?.acct?.let { "@$it" } ?: "MISSING_ACCOUNT",
+                repostingAuthorImageUrl = account?.avatarStatic,
+                timeOfRepost = createdAt.mostPreciseOrFallback(Instant.now()).toKotlinInstant()
+            )
+        )
+    } else {
+        return FeedItem(
+            text = content,
+            author = account?.acct?.let { "@$it" } ?: "MISSING_ACCOUNT",
+            authorImageUrl = account?.avatarStatic,
+            id = id ?: uri,
+            published = createdAt.mostPreciseOrFallback(Instant.now()).toKotlinInstant(),
+            link = url.takeIf { it.isNotEmpty() },
+            platform = PlatformId.Mastodon,
+            quotedPost = reblog?.toFeedItem(userServerBaseUrl),
+            mediaAttachments = mediaAttachments.mapNotNull { it.toMediaAttachment() }
+        )
+    }
 }
 
 private fun MastodonMediaAttachment.toMediaAttachment(): MediaAttachment? {
