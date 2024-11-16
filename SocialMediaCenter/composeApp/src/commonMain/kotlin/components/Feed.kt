@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Card
 import androidx.compose.material.FloatingActionButton
 import androidx.compose.material.Icon
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -225,7 +226,7 @@ fun RepostInfo(
             modifier = Modifier.padding(start = 8.dp)
                 .align(Alignment.CenterVertically)
                 .height(28.dp),
-            color = Color.DarkGray,
+            color = if (MaterialTheme.colors.isLight) Color.DarkGray else Color.LightGray,
             fontSize = 14.sp
         )
     }
