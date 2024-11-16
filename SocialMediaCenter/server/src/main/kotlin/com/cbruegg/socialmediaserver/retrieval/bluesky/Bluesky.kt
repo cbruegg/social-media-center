@@ -1,5 +1,6 @@
 package com.cbruegg.socialmediaserver.retrieval.bluesky
 
+import app.bsky.actor.ProfileView
 import app.bsky.embed.RecordViewRecord
 import app.bsky.embed.RecordViewRecordEmbedUnion
 import app.bsky.embed.RecordViewRecordUnion
@@ -9,6 +10,7 @@ import app.bsky.feed.GetTimelineQueryParams
 import app.bsky.feed.PostView
 import app.bsky.feed.PostViewEmbedUnion
 import app.bsky.feed.ReplyRefParentUnion
+import app.bsky.graph.GetFollowsQueryParams
 import com.atproto.server.CreateSessionRequest
 import com.cbruegg.socialmediaserver.retrieval.SocialPlatform
 import com.cbruegg.socialmediaserver.shared.FeedItem
@@ -26,10 +28,12 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import sh.christian.ozone.XrpcBlueskyApi
+import sh.christian.ozone.api.AtIdentifier
+import sh.christian.ozone.api.Did
 import sh.christian.ozone.api.Uri
 
 // TODO Fix links in https://bsky.app/profile/cbruegg.com/post/3lazcztqnhk2z
-// TODO Subscribe to followings feed to avoid seeing mentions of users not followed: https://bsky.app/profile/joemerrick.bsky.social/post/3lazebeebdc22
+// TODO Stop emulating reposts through RTs. Build native support for reposts. This way we can also display reposts of quote posts fine.
 
 class Bluesky(private val feedsOf: List<BlueskyAccount>) : SocialPlatform {
     override val platformId = PlatformId.Bluesky
@@ -58,14 +62,39 @@ class Bluesky(private val feedsOf: List<BlueskyAccount>) : SocialPlatform {
                 )
             ).requireResponse()
             tokens.value = Tokens(session.accessJwt, session.refreshJwt)
+            val follows = api.getAllFollows(session.did).map { it.did }
             val timeline = api.getTimeline(GetTimelineQueryParams(limit = 100)).requireResponse()
-            return timeline.feed.map { it.toFeedItem() }
+            return timeline.feed
+                // Filter out replies to users not followed
+                .filterNot { post -> post.inReplyTo.let { it != null && it !in follows } }
+                .map { it.toFeedItem() }
         } catch (e: Exception) {
             e.printStackTrace()
             return emptyList()
         }
     }
 }
+
+private val FeedViewPost.inReplyTo: Did?
+    get() = when (val parent = reply?.parent) {
+        is ReplyRefParentUnion.PostView -> parent.value.author.did
+        else -> null
+    }
+
+private suspend fun XrpcBlueskyApi.getAllFollows(of: AtIdentifier): List<ProfileView> {
+    val follows = mutableListOf<ProfileView>()
+    var cursor: String? = null
+    do {
+        val response =
+            getFollows(GetFollowsQueryParams(actor = of, cursor = cursor)).requireResponse()
+        follows += response.follows
+        cursor = response.cursor
+    } while (cursor != null)
+    return follows
+}
+
+private val FeedViewPost.isRepost: Boolean
+    get() = reason is FeedViewPostReasonUnion.ReasonRepost
 
 private fun FeedViewPost.toFeedItem(): FeedItem {
     val record = post.record.value.jsonObject
@@ -77,19 +106,19 @@ private fun FeedViewPost.toFeedItem(): FeedItem {
         null -> ""
     }
     return FeedItem(
-        text = if (reasonRepost != null)
+        text = if (isRepost)
             ""
         else
             mentionPrefix + (record["text"]?.jsonPrimitive?.contentOrNull ?: ""),
         author = "@" + (reasonRepost?.by?.handle?.handle ?: post.author.handle.handle),
         authorImageUrl = reasonRepost?.by?.avatar?.uri ?: post.author.avatar?.uri,
         id = post.cid.cid,
-        published = reasonRepost?.by?.createdAt ?: record["createdAt"]!!.jsonPrimitive.content.let(
+        published = reasonRepost?.indexedAt ?: record["createdAt"]!!.jsonPrimitive.content.let(
             Instant::parse
         ),
         link = post.bskyAppUri,
         platform = PlatformId.Bluesky,
-        repost = post.embed?.extractQuotedFeedItem() ?: reasonRepost?.let {
+        repost = reasonRepost?.let {
             FeedItem(
                 text = record["text"]?.jsonPrimitive?.contentOrNull ?: "",
                 author = "@" + post.author.handle.handle,
@@ -102,7 +131,7 @@ private fun FeedViewPost.toFeedItem(): FeedItem {
                 mediaAttachments = post.embed?.toMediaAttachments() ?: emptyList(),
                 isSkyBridgePost = false
             )
-        },
+        } ?: post.embed?.extractQuotedFeedItem() ,
         mediaAttachments = post.embed?.toMediaAttachments() ?: emptyList(),
         isSkyBridgePost = false // TODO Remove Skybridge support, also from guide and docker file
     )
