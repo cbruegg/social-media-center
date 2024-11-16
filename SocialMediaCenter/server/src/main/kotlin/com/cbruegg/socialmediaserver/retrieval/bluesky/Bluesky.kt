@@ -38,7 +38,6 @@ import sh.christian.ozone.api.Did
 import sh.christian.ozone.api.Uri
 import java.util.Collections
 
-// TODO Stop emulating reposts through RTs. Build native support for reposts. This way we can also display reposts of quote posts fine.
 // TODO Stop emulating links by expanding them. Add native supports for spans/facets.
 
 class Bluesky(private val feedsOf: List<BlueskyAccount>) : SocialPlatform {

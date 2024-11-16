@@ -40,7 +40,6 @@ import kotlinx.coroutines.launch
 import util.ContextualUriHandler
 import util.LocalContextualUriHandler
 
-// TODO: Configurable server
 // TODO: Remember timeline state across devices
 // TODO: (Configurable?) maximum post height (Mastodon posts can be very long)
 
