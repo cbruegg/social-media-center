@@ -1,7 +1,6 @@
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.LinkInteractionListener
 import androidx.compose.ui.text.SpanStyle
@@ -12,7 +11,6 @@ import com.mohamedrejeb.ksoup.entities.KsoupEntities
 import com.mohamedrejeb.ksoup.html.parser.KsoupHtmlHandler
 import com.mohamedrejeb.ksoup.html.parser.KsoupHtmlParser
 
-@ExperimentalTextApi
 fun String.parseHtml(
     linkColor: Color,
     maxLinkLength: Int = Int.MAX_VALUE,
@@ -42,7 +40,7 @@ fun String.parseHtml(
                 "p", "span" -> {}
                 "br" -> string.append('\n')
                 "a" -> {
-                    val link = attributes["href"] ?: return@onOpenTag
+                    val link = attributes["href"] ?: ""
                     visitedLinkUrl = link
 
                     string.pushLink(LinkAnnotation.Url(link, linkInteractionListener = linkInteractionListener))

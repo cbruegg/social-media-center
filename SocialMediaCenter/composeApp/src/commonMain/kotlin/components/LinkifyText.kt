@@ -5,7 +5,6 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.LinkInteractionListener
 import androidx.compose.ui.text.SpanStyle
@@ -17,7 +16,6 @@ import com.mohamedrejeb.ksoup.entities.KsoupEntities
 import parseHtml
 import util.LocalContextualUriHandler
 
-@OptIn(ExperimentalTextApi::class)
 @Composable
 fun FeedItemContentText(feedItem: FeedItem) {
     if (feedItem.text.isEmpty()) return // nothing to display
@@ -49,7 +47,8 @@ fun FeedItemContentText(feedItem: FeedItem) {
         remember(decoded) {
             buildAnnotatedString {
                 append(text = decoded)
-                extractUrls(text = decoded).forEach {
+                val urls = extractUrls(text = decoded)
+                urls.forEach {
                     addStyle(
                         style = SpanStyle(
                             color = Color.Blue,

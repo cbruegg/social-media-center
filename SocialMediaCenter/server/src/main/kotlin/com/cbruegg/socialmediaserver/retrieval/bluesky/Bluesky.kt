@@ -38,7 +38,7 @@ import sh.christian.ozone.api.Did
 import sh.christian.ozone.api.Uri
 import java.util.Collections
 
-// TODO Stop emulating links by expanding them. Add native supports for spans/facets.
+// TODO Stop emulating links by expanding them. Add native supports for spans/facets. Or use HTML for Bluesky posts.
 
 class Bluesky(private val feedsOf: List<BlueskyAccount>) : SocialPlatform {
     private val sessionCache: MutableMap<BlueskyAccount, CreateSessionResponse> =
