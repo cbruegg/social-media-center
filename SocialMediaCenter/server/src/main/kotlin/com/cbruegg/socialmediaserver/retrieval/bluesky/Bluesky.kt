@@ -23,7 +23,10 @@ import io.ktor.http.takeFrom
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -32,8 +35,8 @@ import sh.christian.ozone.api.AtIdentifier
 import sh.christian.ozone.api.Did
 import sh.christian.ozone.api.Uri
 
-// TODO Fix links in https://bsky.app/profile/cbruegg.com/post/3lazcztqnhk2z
 // TODO Stop emulating reposts through RTs. Build native support for reposts. This way we can also display reposts of quote posts fine.
+// TODO Stop emulating links by expanding them. Add native supports for spans/facets.
 
 class Bluesky(private val feedsOf: List<BlueskyAccount>) : SocialPlatform {
     override val platformId = PlatformId.Bluesky
@@ -96,6 +99,32 @@ private suspend fun XrpcBlueskyApi.getAllFollows(of: AtIdentifier): List<Profile
 private val FeedViewPost.isRepost: Boolean
     get() = reason is FeedViewPostReasonUnion.ReasonRepost
 
+private fun String.expandFacets(facets: JsonArray?): String {
+    if (facets == null) return this
+
+    var text = toByteArray(Charsets.UTF_8)
+    // Process facets in reverse order to avoid changing indices
+    for (facet in facets.map { it.jsonObject }.reversed()) {
+        val index = facet["index"]!!.jsonObject
+        val byteStart = index["byteStart"]!!.jsonPrimitive.int
+        val byteEnd = index["byteEnd"]!!.jsonPrimitive.int
+        var span = text.sliceArray(byteStart until byteEnd)
+        val features = facet["features"]!!.jsonArray
+        for (feature in features) {
+            val type = feature.jsonObject["\$type"]!!.jsonPrimitive.content
+            when (type) {
+                "app.bsky.richtext.facet#mention", "app.bsky.richtext.facet#tag" -> continue // Unsupported for now
+                "app.bsky.richtext.facet#link" -> {
+                    val uri = feature.jsonObject["uri"]!!.jsonPrimitive.content
+                    span = uri.toByteArray(Charsets.UTF_8) // Replace shortened URI with full URI
+                }
+            }
+        }
+        text = text.sliceArray(0 until byteStart) + span + text.sliceArray(byteEnd until text.size)
+    }
+    return text.decodeToString()
+}
+
 private fun FeedViewPost.toFeedItem(): FeedItem {
     val record = post.record.value.jsonObject
     val reasonRepost = (reason as? FeedViewPostReasonUnion.ReasonRepost)?.value
@@ -109,7 +138,10 @@ private fun FeedViewPost.toFeedItem(): FeedItem {
         text = if (isRepost)
             ""
         else
-            mentionPrefix + (record["text"]?.jsonPrimitive?.contentOrNull ?: ""),
+            mentionPrefix + (
+                    record["text"]?.jsonPrimitive?.contentOrNull?.expandFacets(post.record.value.jsonObject["facets"]?.jsonArray)
+                        ?: ""
+                    ),
         author = "@" + (reasonRepost?.by?.handle?.handle ?: post.author.handle.handle),
         authorImageUrl = reasonRepost?.by?.avatar?.uri ?: post.author.avatar?.uri,
         id = post.cid.cid,
@@ -120,7 +152,7 @@ private fun FeedViewPost.toFeedItem(): FeedItem {
         platform = PlatformId.Bluesky,
         repost = reasonRepost?.let {
             FeedItem(
-                text = record["text"]?.jsonPrimitive?.contentOrNull ?: "",
+                text = record["text"]?.jsonPrimitive?.contentOrNull?.expandFacets(record["facets"]?.jsonArray) ?: "",
                 author = "@" + post.author.handle.handle,
                 authorImageUrl = post.author.avatar?.uri,
                 id = post.cid.cid,
@@ -131,7 +163,7 @@ private fun FeedViewPost.toFeedItem(): FeedItem {
                 mediaAttachments = post.embed?.toMediaAttachments() ?: emptyList(),
                 isSkyBridgePost = false
             )
-        } ?: post.embed?.extractQuotedFeedItem() ,
+        } ?: post.embed?.extractQuotedFeedItem(),
         mediaAttachments = post.embed?.toMediaAttachments() ?: emptyList(),
         isSkyBridgePost = false // TODO Remove Skybridge support, also from guide and docker file
     )
@@ -141,42 +173,50 @@ private fun PostViewEmbedUnion?.extractQuotedFeedItem(): FeedItem? {
     return when (this) {
         is PostViewEmbedUnion.RecordView ->
             when (val record = value.record) {
-                is RecordViewRecordUnion.ViewRecord -> FeedItem(
-                    text = record.value.value.value.jsonObject["text"]?.jsonPrimitive?.content
-                        ?: "",
-                    author = record.value.author.handle.handle,
-                    authorImageUrl = record.value.author.avatar?.uri,
-                    id = record.value.cid.cid,
-                    published = record.value.value.value.jsonObject["createdAt"]!!.jsonPrimitive.content.let(
-                        Instant::parse
-                    ),
-                    link = record.value.bskyAppUri,
-                    platform = PlatformId.Bluesky,
-                    repost = null,
-                    mediaAttachments = emptyList(),
-                    isSkyBridgePost = false
-                )
+                is RecordViewRecordUnion.ViewRecord -> {
+                    val recordJsonObject = record.value.value.value.jsonObject
+                    FeedItem(
+                        text = recordJsonObject["text"]?.jsonPrimitive?.content?.expandFacets(
+                            recordJsonObject["facets"]?.jsonArray
+                        ) ?: "",
+                        author = record.value.author.handle.handle,
+                        authorImageUrl = record.value.author.avatar?.uri,
+                        id = record.value.cid.cid,
+                        published = recordJsonObject["createdAt"]!!.jsonPrimitive.content.let(
+                            Instant::parse
+                        ),
+                        link = record.value.bskyAppUri,
+                        platform = PlatformId.Bluesky,
+                        repost = null,
+                        mediaAttachments = emptyList(),
+                        isSkyBridgePost = false
+                    )
+                }
 
                 else -> null
             }
 
         is PostViewEmbedUnion.RecordWithMediaView ->
             when (val record = value.record.record) {
-                is RecordViewRecordUnion.ViewRecord -> FeedItem(
-                    text = record.value.value.value.jsonObject["text"]?.jsonPrimitive?.content
-                        ?: "",
-                    author = record.value.author.handle.handle,
-                    authorImageUrl = record.value.author.avatar?.uri,
-                    id = record.value.cid.cid,
-                    published = record.value.value.value.jsonObject["createdAt"]!!.jsonPrimitive.content.let(
-                        Instant::parse
-                    ),
-                    link = record.value.bskyAppUri,
-                    platform = PlatformId.Bluesky,
-                    repost = null,
-                    mediaAttachments = record.value.embeds.flatMap { it.toMediaAttachments() }, // TODO Test with https://bsky.app/profile/chenchenzh.bsky.social/post/3lawca5ebk223
-                    isSkyBridgePost = false
-                )
+                is RecordViewRecordUnion.ViewRecord -> {
+                    val recordJsonObject = record.value.value.value.jsonObject
+                    FeedItem(
+                        text = recordJsonObject["text"]?.jsonPrimitive?.content?.expandFacets(
+                            recordJsonObject["facets"]?.jsonArray
+                        ) ?: "",
+                        author = record.value.author.handle.handle,
+                        authorImageUrl = record.value.author.avatar?.uri,
+                        id = record.value.cid.cid,
+                        published = recordJsonObject["createdAt"]!!.jsonPrimitive.content.let(
+                            Instant::parse
+                        ),
+                        link = record.value.bskyAppUri,
+                        platform = PlatformId.Bluesky,
+                        repost = null,
+                        mediaAttachments = record.value.embeds.flatMap { it.toMediaAttachments() }, // TODO Test with https://bsky.app/profile/chenchenzh.bsky.social/post/3lawca5ebk223
+                        isSkyBridgePost = false
+                    )
+                }
 
                 else -> null
             }
