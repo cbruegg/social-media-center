@@ -52,7 +52,13 @@ class Mastodon(
 private fun Status.toFeedItem(userServerBaseUrl: String): FeedItem {
     val id = id.takeIf { it.isNotEmpty() }
     val account = account
-    val url = url.ifEmpty { uri }
+    val url = if (id != null && account != null) {
+        "$userServerBaseUrl/@${account.acct}/$id"
+    } else if (url.isNotEmpty()) {
+        url
+    } else {
+        uri
+    }
     return FeedItem(
         text = content,
         author = account?.acct?.let { "@$it" } ?: "MISSING_ACCOUNT",
