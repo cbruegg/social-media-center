@@ -1,8 +1,9 @@
+
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.UrlAnnotation
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -39,11 +40,11 @@ fun String.parseHtml(
                 "p", "span" -> {}
                 "br" -> string.append('\n')
                 "a" -> {
-                    val link = attributes["href"]
+                    val link = attributes["href"] ?: return@onOpenTag
                     visitedLinkUrl = link
 
                     // replaceable with pushStringAnnotation if API goes away due to experimental status
-                    string.pushUrlAnnotation(UrlAnnotation(link ?: ""))
+                    string.pushLink(LinkAnnotation.Url(link))
                     string.pushStyle(
                         SpanStyle(
                             color = linkColor,

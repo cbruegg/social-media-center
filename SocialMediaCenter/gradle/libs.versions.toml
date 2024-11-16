@@ -1,22 +1,22 @@
 [versions]
-agp = "8.3.2"
+agp = "8.5.2"
 android-compileSdk = "34"
 android-minSdk = "26"
 android-targetSdk = "34"
 androidx-activityCompose = "1.9.3"
 androidx-appcompat = "1.7.0"
 bigbone = "2.0.0-SNAPSHOT"
-compose-plugin = "1.6.10"
+compose-plugin = "1.7.1"
 emojiCompose = "1.5.0"
 junit = "4.13.2"
 kotlin = "2.0.20"
-ktor = "3.0.0"
+ktor = "3.0.1"
 coroutines = "1.9.0"
 kotlinx-serialization-json = "1.7.3"
-kotlinx-datetime = "0.6.0"
-coil = "3.0.0-rc01"
+kotlinx-datetime = "0.6.1"
+coil = "3.0.0"
 ksoup = "0.4.0"
-lifecycle = "2.8.0"
+lifecycle = "2.8.4"
 logbackClassic = "1.5.6"
 ozone = "0.2.0"
 
@@ -42,6 +42,7 @@ ksoup-entities = { module = "com.mohamedrejeb.ksoup:ksoup-entities", version.ref
 lifecycle-viewmodel = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel", version.ref = "lifecycle" }
 lifecycle-viewmodel-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 lifecycle-viewmodel-savedstate = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-savedstate", version.ref = "lifecycle" }
+lifecycle-runtime-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logbackClassic" }
 
 ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }

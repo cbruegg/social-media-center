@@ -12,9 +12,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.ui.text.UrlAnnotation
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import com.cbruegg.socialmediaserver.shared.FeedItem
@@ -57,7 +57,7 @@ fun FeedItemContentText(feedItem: FeedItem) {
                         start = it.start,
                         end = it.end
                     )
-                    addUrlAnnotation(UrlAnnotation(it.url), it.start, it.end)
+                    addLink(LinkAnnotation.Url(it.url), it.start, it.end)
                 }
             }
         }
@@ -113,8 +113,8 @@ private fun ClickableTextWithInlineContent(
                     layoutResult.value?.let {
                         val position = it.getOffsetForPosition(offsetPosition)
                         val annotation =
-                            text.getUrlAnnotations(position, position).firstOrNull()
-                        onClick(annotation?.item?.url)
+                            text.getLinkAnnotations(position, position).firstOrNull()
+                        onClick((annotation?.item as? LinkAnnotation.Url)?.url)
                     }
                 }
             },
