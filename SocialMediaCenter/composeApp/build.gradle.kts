@@ -81,7 +81,6 @@ kotlin {
             implementation(libs.coil.network)
             implementation(libs.ksoup.html)
             implementation(libs.ksoup.entities)
-            implementation(libs.emoji.compose)
             implementation(libs.androidx.lifecycle.runtime)
             implementation(libs.lifecycle.viewmodel)
             implementation(libs.lifecycle.viewmodel.savedstate)

@@ -11,7 +11,6 @@ import persistence.Persistence
 
 class WasmPlatform : Platform {
     override val isCorsRestricted: Boolean = true
-    override val nativelySupportsEmojiRendering: Boolean = false
 
     override val persistence: Persistence = WasmPersistence
     override fun formatFeedItemDate(instant: Instant): String =

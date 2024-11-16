@@ -7,7 +7,6 @@ androidx-activityCompose = "1.9.3"
 androidx-appcompat = "1.7.0"
 bigbone = "2.0.0-SNAPSHOT"
 compose-plugin = "1.7.1"
-emojiCompose = "1.5.0"
 junit = "4.13.2"
 kotlin = "2.0.20"
 ktor = "3.0.1"
@@ -23,7 +22,6 @@ ozone = "0.2.0"
 [libraries]
 bigbone = { module = "social.bigbone:bigbone", version.ref = "bigbone" }
 ozone = { module = "sh.christian.ozone:bluesky", version.ref = "ozone" }
-emoji-compose = { module = "org.kodein.emoji:emoji-compose", version.ref = "emojiCompose" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "androidx-appcompat" }

@@ -37,7 +37,6 @@ import components.LastLoadFailurePopup
 import components.LifecycleHandler
 import io.ktor.http.encodeURLParameter
 import kotlinx.coroutines.launch
-import org.kodein.emoji.compose.LocalEmojiDownloader
 import util.ContextualUriHandler
 import util.LocalContextualUriHandler
 
@@ -54,8 +53,7 @@ fun App() {
     MaterialTheme(colors = if (isSystemInDarkTheme()) darkColors() else lightColors()) {
         val dependencies = getAppDependencies()
         CompositionLocalProvider(
-            LocalContextualUriHandler provides dependencies.uriHandler,
-            LocalEmojiDownloader provides dependencies.downloadEmojis
+            LocalContextualUriHandler provides dependencies.uriHandler
         ) {
             val scope = rememberCoroutineScope()
             val vm = dependencies.viewModel

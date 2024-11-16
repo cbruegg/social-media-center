@@ -3,6 +3,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.LinkInteractionListener
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -15,7 +16,8 @@ import com.mohamedrejeb.ksoup.html.parser.KsoupHtmlParser
 fun String.parseHtml(
     linkColor: Color,
     maxLinkLength: Int = Int.MAX_VALUE,
-    requiresHtmlDecode: Boolean = true
+    requiresHtmlDecode: Boolean = true,
+    linkInteractionListener: LinkInteractionListener?
 ): AnnotatedString {
     // Can probably be replaced with AnnotatedString.fromHtml once
     // Compose Multiplatform 1.7 is out: https://developer.android.com/reference/kotlin/androidx/compose/ui/text/AnnotatedString.Companion#(androidx.compose.ui.text.AnnotatedString.Companion).fromHtml(kotlin.String,androidx.compose.ui.text.SpanStyle,androidx.compose.ui.text.SpanStyle,androidx.compose.ui.text.SpanStyle,androidx.compose.ui.text.SpanStyle,androidx.compose.ui.text.LinkInteractionListener)
@@ -43,8 +45,7 @@ fun String.parseHtml(
                     val link = attributes["href"] ?: return@onOpenTag
                     visitedLinkUrl = link
 
-                    // replaceable with pushStringAnnotation if API goes away due to experimental status
-                    string.pushLink(LinkAnnotation.Url(link))
+                    string.pushLink(LinkAnnotation.Url(link, linkInteractionListener = linkInteractionListener))
                     string.pushStyle(
                         SpanStyle(
                             color = linkColor,

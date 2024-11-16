@@ -50,7 +50,6 @@ import com.cbruegg.socialmediaserver.shared.MediaType
 import com.cbruegg.socialmediaserver.shared.RepostMeta
 import getPlatform
 import kotlinx.coroutines.launch
-import org.kodein.emoji.compose.WithPlatformEmoji
 import persistence.rememberForeverLazyListState
 import security.ServerConfig
 import security.tokenAsHttpHeader
@@ -181,7 +180,6 @@ private fun FeedItemRow(
                     Modifier.size(64.dp).padding(8.dp)
                 )
                 Column {
-                    // Using WithPlatformEmoji for emoji support on WASM
                     AuthorName(feedItem)
                     FeedItemContentText(feedItem)
                     FeedItemMediaAttachments(feedItem, tokenAsHttpHeader, baseUrl)
@@ -222,25 +220,20 @@ fun RepostInfo(
             baseUrl,
             Modifier.padding(start = 8.dp).size(20.dp)
         )
-        WithPlatformEmoji(repostMeta.repostingAuthor) { text, content ->
-            Text(
-                text,
-                inlineContent = content,
-                modifier = Modifier.padding(start = 8.dp)
-                    .align(Alignment.CenterVertically)
-                    .height(28.dp),
-                color = Color.DarkGray,
-                fontSize = 14.sp
-            )
-        }
+        Text(
+            repostMeta.repostingAuthor,
+            modifier = Modifier.padding(start = 8.dp)
+                .align(Alignment.CenterVertically)
+                .height(28.dp),
+            color = Color.DarkGray,
+            fontSize = 14.sp
+        )
     }
 }
 
 @Composable
 private fun AuthorName(feedItem: FeedItem) {
-    WithPlatformEmoji(feedItem.author) { text, content ->
-        Text(text, inlineContent = content, fontWeight = FontWeight.Bold)
-    }
+    Text(feedItem.author, fontWeight = FontWeight.Bold)
 }
 
 @Composable
