@@ -16,6 +16,9 @@ fun FeedItem.withProxiedUrl(): FeedItem = copy(
             previewImageUrl = it.previewImageUrl.proxiedUrl(),
             fullUrl = it.fullUrl.proxiedUrl()
         )
+    },
+    repostMeta = repostMeta?.let {
+        it.copy(repostingAuthorImageUrl = it.repostingAuthorImageUrl?.proxiedUrl())
     }
 )
 
