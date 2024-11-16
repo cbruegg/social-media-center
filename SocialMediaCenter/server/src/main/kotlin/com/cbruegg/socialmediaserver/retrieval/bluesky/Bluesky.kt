@@ -12,6 +12,7 @@ import app.bsky.feed.PostViewEmbedUnion
 import app.bsky.feed.ReplyRefParentUnion
 import app.bsky.graph.GetFollowsQueryParams
 import com.atproto.server.CreateSessionRequest
+import com.atproto.server.CreateSessionResponse
 import com.cbruegg.socialmediaserver.retrieval.SocialPlatform
 import com.cbruegg.socialmediaserver.shared.FeedItem
 import com.cbruegg.socialmediaserver.shared.MediaAttachment
@@ -35,11 +36,15 @@ import sh.christian.ozone.XrpcBlueskyApi
 import sh.christian.ozone.api.AtIdentifier
 import sh.christian.ozone.api.Did
 import sh.christian.ozone.api.Uri
+import java.util.Collections
 
 // TODO Stop emulating reposts through RTs. Build native support for reposts. This way we can also display reposts of quote posts fine.
 // TODO Stop emulating links by expanding them. Add native supports for spans/facets.
 
 class Bluesky(private val feedsOf: List<BlueskyAccount>) : SocialPlatform {
+    private val sessionCache: MutableMap<BlueskyAccount, CreateSessionResponse> =
+        Collections.synchronizedMap(mutableMapOf())
+
     override val platformId = PlatformId.Bluesky
 
     override suspend fun getFeed(): List<FeedItem> = feedsOf.flatMap { getFeed(it) }
@@ -59,12 +64,15 @@ class Bluesky(private val feedsOf: List<BlueskyAccount>) : SocialPlatform {
                 expectSuccess = false
             }
             val api = XrpcBlueskyApi(httpClient)
-            val session = api.createSession(
-                CreateSessionRequest(
-                    identifier = account.username,
-                    password = account.password
-                )
-            ).requireResponse()
+            val session = sessionCache[account]
+                ?: api.createSession(
+                    CreateSessionRequest(
+                        identifier = account.username,
+                        password = account.password
+                    )
+                ).requireResponse().also {
+                    sessionCache[account] = it
+                }
             tokens.value = Tokens(session.accessJwt, session.refreshJwt)
             val follows = api.getAllFollows(session.did).map { it.did }
             val timeline = api.getTimeline(GetTimelineQueryParams(limit = 100)).requireResponse()
@@ -73,6 +81,7 @@ class Bluesky(private val feedsOf: List<BlueskyAccount>) : SocialPlatform {
                 .filterNot { post -> post.inReplyTo.let { it != null && it !in follows } }
                 .map { it.toFeedItem() }
         } catch (e: Exception) {
+            sessionCache -= account
             e.printStackTrace()
             return emptyList()
         }
