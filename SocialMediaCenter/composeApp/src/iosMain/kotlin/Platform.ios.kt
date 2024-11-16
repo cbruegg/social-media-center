@@ -71,7 +71,7 @@ private class IOSUriHandler(
     override fun openPostUri(uri: String, platformOfPost: PlatformId) {
         when (platformOfPost) {
             PlatformId.Twitter -> {
-                val postId = Url(uri).pathSegments.lastOrNull { it.isNumeric() }
+                val postId = Url(uri).segments.lastOrNull { it.isNumeric() }
                 if (postId != null && tryOpenUri("twitter://status?id=${postId}")) return
                 if (tryOpenUri("opener://x-callback-url/show-options?url=${uri.encodeURLPath()}")) return
 
