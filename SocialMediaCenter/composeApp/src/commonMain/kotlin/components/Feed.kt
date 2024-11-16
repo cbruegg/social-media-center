@@ -151,8 +151,7 @@ private fun FeedItemRow(
                 it.clickable {
                     uriHandler.openPostUri(
                         link,
-                        feedItem.platform,
-                        feedItem.isSkyBridgePost
+                        feedItem.platform
                     )
                 }
             } else {

@@ -50,17 +50,9 @@ class Mastodon(
 }
 
 private fun Status.toFeedItem(userServerBaseUrl: String): FeedItem {
-    val isSkyBridge = application?.name == "Bluesky"
     val id = id.takeIf { it.isNotEmpty() }
     val account = account
-    val url = if (!isSkyBridge && id != null && account != null) {
-        // Skybridge does not implement ACCT, so we can't use this
-        "$userServerBaseUrl/@${account.acct}/$id"
-    } else if (url.isNotEmpty()) {
-        url
-    } else {
-        uri
-    }
+    val url = url.ifEmpty { uri }
     return FeedItem(
         text = content,
         author = account?.acct?.let { "@$it" } ?: "MISSING_ACCOUNT",
@@ -70,8 +62,7 @@ private fun Status.toFeedItem(userServerBaseUrl: String): FeedItem {
         link = url.takeIf { it.isNotEmpty() },
         platform = PlatformId.Mastodon,
         repost = reblog?.toFeedItem(userServerBaseUrl),
-        mediaAttachments = mediaAttachments.mapNotNull { it.toMediaAttachment() },
-        isSkyBridgePost = isSkyBridge
+        mediaAttachments = mediaAttachments.mapNotNull { it.toMediaAttachment() }
     )
 }
 

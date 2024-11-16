@@ -160,12 +160,10 @@ private fun FeedViewPost.toFeedItem(): FeedItem {
                 link = post.bskyAppUri,
                 platform = PlatformId.Bluesky,
                 repost = null,
-                mediaAttachments = post.embed?.toMediaAttachments() ?: emptyList(),
-                isSkyBridgePost = false
+                mediaAttachments = post.embed?.toMediaAttachments() ?: emptyList()
             )
         } ?: post.embed?.extractQuotedFeedItem(),
-        mediaAttachments = post.embed?.toMediaAttachments() ?: emptyList(),
-        isSkyBridgePost = false // TODO Remove Skybridge support, also from guide and docker file
+        mediaAttachments = post.embed?.toMediaAttachments() ?: emptyList()
     )
 }
 
@@ -188,8 +186,7 @@ private fun PostViewEmbedUnion?.extractQuotedFeedItem(): FeedItem? {
                         link = record.value.bskyAppUri,
                         platform = PlatformId.Bluesky,
                         repost = null,
-                        mediaAttachments = emptyList(),
-                        isSkyBridgePost = false
+                        mediaAttachments = emptyList()
                     )
                 }
 
@@ -213,8 +210,7 @@ private fun PostViewEmbedUnion?.extractQuotedFeedItem(): FeedItem? {
                         link = record.value.bskyAppUri,
                         platform = PlatformId.Bluesky,
                         repost = null,
-                        mediaAttachments = record.value.embeds.flatMap { it.toMediaAttachments() }, // TODO Test with https://bsky.app/profile/chenchenzh.bsky.social/post/3lawca5ebk223
-                        isSkyBridgePost = false
+                        mediaAttachments = record.value.embeds.flatMap { it.toMediaAttachments() } // TODO Test with https://bsky.app/profile/chenchenzh.bsky.social/post/3lawca5ebk223
                     )
                 }
 

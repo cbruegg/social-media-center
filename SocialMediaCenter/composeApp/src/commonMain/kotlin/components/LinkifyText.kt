@@ -40,8 +40,7 @@ fun FeedItemContentText(feedItem: FeedItem) {
         remember(feedItem, linkColor) {
             feedItem.text.parseHtml(
                 linkColor,
-                maxLinkLength = 100,
-                isSkyBridgePost = feedItem.isSkyBridgePost
+                maxLinkLength = 100
             )
         }
     } else {
@@ -70,7 +69,7 @@ fun FeedItemContentText(feedItem: FeedItem) {
         if (!url.isNullOrEmpty())
             uriHandler.openUri(url)
         else if (feedItemLink != null)
-            uriHandler.openPostUri(feedItemLink, feedItem.platform, feedItem.isSkyBridgePost)
+            uriHandler.openPostUri(feedItemLink, feedItem.platform)
         else
             println("No clickable content, ignoring click")
     }
