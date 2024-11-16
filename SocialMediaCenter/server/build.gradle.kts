@@ -11,6 +11,7 @@ dependencies {
     implementation(project(":shared"))
 
     implementation(libs.bigbone)
+    implementation(libs.ozone)
 
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.serialization.json)

@@ -18,9 +18,11 @@ coil = "3.0.0-rc01"
 ksoup = "0.4.0"
 lifecycle = "2.8.0"
 logbackClassic = "1.5.6"
+ozone = "0.2.0"
 
 [libraries]
 bigbone = { module = "social.bigbone:bigbone", version.ref = "bigbone" }
+ozone = { module = "sh.christian.ozone:bluesky", version.ref = "ozone" }
 emoji-compose = { module = "org.kodein.emoji:emoji-compose", version.ref = "emojiCompose" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }

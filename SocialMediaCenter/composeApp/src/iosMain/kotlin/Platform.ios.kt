@@ -68,29 +68,27 @@ private class IOSUriHandler(
         return true
     }
 
-    override fun openPostUri(uri: String, platformOfPost: PlatformId, isSkyBridgePost: Boolean) {
+    override fun openPostUri(uri: String, platformOfPost: PlatformId) {
         when (platformOfPost) {
             PlatformId.Twitter -> {
-                val postId = Url(uri).pathSegments.lastOrNull { it.isNumeric() }
+                val postId = Url(uri).segments.lastOrNull { it.isNumeric() }
                 if (postId != null && tryOpenUri("twitter://status?id=${postId}")) return
                 if (tryOpenUri("opener://x-callback-url/show-options?url=${uri.encodeURLPath()}")) return
 
                 openUri(uri)
             }
 
-            PlatformId.Mastodon -> {
-                if (isSkyBridgePost) {
-                    println("isSkyBridgePost=true -> don't use Mastodon app to open Skybridge post")
-                    openUri(uri, allowInApp = false)
-                    return
-                }
+            PlatformId.Bluesky -> {
+                openUri(uri, allowInApp = false)
+            }
 
+            PlatformId.Mastodon -> {
                 // For Mastodon, opening posts is not always reliable. Copy text to clipboard
                 // to let user paste it into the search bar of their Mastodon app if needed
                 clipboardManager.setText(AnnotatedString(uri))
 
                 // Try official Mastodon app first
-                val postId = Url(uri).pathSegments.lastOrNull { it.isNotEmpty() && it.isNumeric() }
+                val postId = Url(uri).segments.lastOrNull { it.isNotEmpty() && it.isNumeric() }
                 if (postId != null && tryOpenUri("mastodon://status/${postId}")) return
 
                 // Try Mammoth next
