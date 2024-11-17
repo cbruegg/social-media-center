@@ -41,7 +41,9 @@ import java.util.Collections
 // TODO Stop emulating links by expanding them. Add native supports for spans/facets. Or use HTML for Bluesky posts.
 
 class Bluesky(private val feedsOf: List<BlueskyAccount>) : SocialPlatform {
-    private val sessionCache: MutableMap<BlueskyAccount, CreateSessionResponse> =
+    private class CachedSession(val session: CreateSessionResponse, val httpClient: HttpClient)
+
+    private val sessionCache: MutableMap<BlueskyAccount, CachedSession> =
         Collections.synchronizedMap(mutableMapOf())
 
     override val platformId = PlatformId.Bluesky
@@ -50,29 +52,34 @@ class Bluesky(private val feedsOf: List<BlueskyAccount>) : SocialPlatform {
 
     private suspend fun getFeed(account: BlueskyAccount): List<FeedItem> {
         try {
-            val tokens = MutableStateFlow<Tokens?>(null)
-            val httpClient = HttpClient {
-                install(XrpcAuthPlugin) {
-                    authTokens = tokens
-                }
+            var cachedSession = sessionCache[account]
+            if (cachedSession == null) {
+                val tokens = MutableStateFlow<Tokens?>(null)
+                val httpClient = HttpClient {
+                    install(XrpcAuthPlugin) {
+                        authTokens = tokens
+                    }
 
-                install(DefaultRequest) {
-                    url.takeFrom(account.server)
-                }
+                    install(DefaultRequest) {
+                        url.takeFrom(account.server)
+                    }
 
-                expectSuccess = false
-            }
-            val api = XrpcBlueskyApi(httpClient)
-            val session = sessionCache[account]
-                ?: api.createSession(
+                    expectSuccess = false
+                }
+                val api = XrpcBlueskyApi(httpClient)
+                val session = api.createSession(
                     CreateSessionRequest(
                         identifier = account.username,
                         password = account.password
                     )
-                ).requireResponse().also {
-                    sessionCache[account] = it
-                }
-            tokens.value = Tokens(session.accessJwt, session.refreshJwt)
+                ).requireResponse()
+                tokens.value = Tokens(session.accessJwt, session.refreshJwt)
+                cachedSession = CachedSession(session, httpClient)
+                sessionCache[account] = cachedSession
+            }
+
+            val api = XrpcBlueskyApi(cachedSession.httpClient)
+            val session = cachedSession.session
             val follows = api.getAllFollows(session.did).map { it.did }
             val timeline = api.getTimeline(GetTimelineQueryParams(limit = 100)).requireResponse()
             return timeline.feed
