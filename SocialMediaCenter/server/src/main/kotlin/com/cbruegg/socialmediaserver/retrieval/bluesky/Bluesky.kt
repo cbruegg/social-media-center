@@ -140,6 +140,7 @@ private fun String.expandFacets(facets: JsonArray?): String {
 
 private fun FeedViewPost.toFeedItem(): FeedItem {
     val record = post.record.value.jsonObject
+    val embed = post.embed
     val reasonRepost = (reason as? FeedViewPostReasonUnion.ReasonRepost)?.value
     val mentionPrefix = when (val parentOfReply = reply?.parent) {
         is ReplyRefParentUnion.BlockedPost -> "@${parentOfReply.value.author.did.did} "
@@ -147,19 +148,23 @@ private fun FeedViewPost.toFeedItem(): FeedItem {
         is ReplyRefParentUnion.PostView -> "@${parentOfReply.value.author.handle.handle} "
         null -> ""
     }
+    var text = mentionPrefix + (
+            record["text"]?.jsonPrimitive?.contentOrNull?.expandFacets(post.record.value.jsonObject["facets"]?.jsonArray)
+                ?: ""
+            )
+    if (embed is PostViewEmbedUnion.ExternalView && !embed.isGifv()) {
+        text += "\n\n${embed.value.external.uri.uri}"
+    }
     return FeedItem(
-        text = mentionPrefix + (
-                record["text"]?.jsonPrimitive?.contentOrNull?.expandFacets(post.record.value.jsonObject["facets"]?.jsonArray)
-                    ?: ""
-                ),
+        text = text,
         author = "@" + post.author.handle.handle,
         authorImageUrl = post.author.avatar?.uri,
         id = post.cid.cid,
         published = record["createdAt"]!!.jsonPrimitive.content.let(Instant::parse),
         link = post.bskyAppUri,
         platform = PlatformId.Bluesky,
-        quotedPost = post.embed?.extractQuotedFeedItem(),
-        mediaAttachments = post.embed?.toMediaAttachments() ?: emptyList(),
+        quotedPost = embed?.extractQuotedFeedItem(),
+        mediaAttachments = embed?.toMediaAttachments() ?: emptyList(),
         repostMeta = reasonRepost?.let {
             RepostMeta(
                 repostingAuthor = "@" + reasonRepost.by.handle.handle,
@@ -227,9 +232,14 @@ private fun PostViewEmbedUnion?.extractQuotedFeedItem(): FeedItem? {
 private val gifvHosts =
     listOf("giphy.com" /* including www., media., media0-4. */, "media.tenor.com")
 
+private fun PostViewEmbedUnion.isGifv(): Boolean = when (this) {
+    is PostViewEmbedUnion.ExternalView -> gifvHosts.any { value.external.uri.uri.toHttpUrl().host.endsWith(it) }
+    else -> false
+}
+
 private fun PostViewEmbedUnion.toMediaAttachments(): List<MediaAttachment> = when (this) {
     is PostViewEmbedUnion.ExternalView ->
-        if (gifvHosts.any { value.external.uri.uri.toHttpUrl().host.endsWith(it) } && value.external.thumb != null) listOf(
+        if (isGifv() && value.external.thumb != null) listOf(
             MediaAttachment(
                 type = MediaType.Gifv,
                 previewImageUrl = value.external.thumb!!.uri,
