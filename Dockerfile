@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM ubuntu:23.10 AS buildServer
+FROM --platform=$BUILDPLATFORM ubuntu:24.04 AS buildServer
 # Currently does not work on AArch64 as even the shared module requires
 # the unavailable Linux AArch64 compiler :(
 ARG TARGETPLATFORM
@@ -21,7 +21,7 @@ WORKDIR /build/SocialMediaCenter
 RUN ./gradlew -PexcludeComposeApp=true :server:assemble
 RUN unzip /build/SocialMediaCenter/server/build/distributions/server-1.0-SNAPSHOT.zip
 
-FROM --platform=x86_64 ubuntu:23.10 AS buildWebApp
+FROM --platform=x86_64 ubuntu:24.04 AS buildWebApp
 ARG GITHUB_ACTOR
 ARG GITHUB_TOKEN
 ENV GITHUB_ACTOR $GITHUB_ACTOR
