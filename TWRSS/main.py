@@ -1,14 +1,17 @@
+import asyncio
 import time
 from datetime import date, datetime
 import os.path
 import sys
 import json
+from functools import partial
 from typing import Optional
 
 import twikit
 from twikit import Client, Tweet
 from dateutil import parser
-from twikit.utils import Result
+from twikit.tweet import tweet_from_data
+from twikit.utils import Result, find_dict
 
 MAX_PAGES = 2
 SECONDS_BETWEEN_PAGES = 5
@@ -18,54 +21,39 @@ COOKIES_FILE = "cookies.json"
 
 class BetterListSupportClient(Client):
 
-    def get_list_tweets(self, list_id: str, count: int = 20, cursor: Optional[str] = None) -> Result[Tweet]:
-        variables = {
-            'listId': list_id,
-            'count': count
-        }
-        if cursor is not None:
-            variables['cursor'] = cursor
-        params = {
-            'variables': json.dumps(variables),
-            'features': json.dumps(twikit.utils.FEATURES)
-        }
-        response = self.http.get(
-            twikit.utils.Endpoint.LIST_LATEST_TWEETS,
-            params=params,
-            headers=self._base_headers
-        ).json()
+    async def get_list_tweets(self, list_id: str, count: int = 20, cursor: Optional[str] = None) -> Result[Tweet]:
+        response, _ = await self.gql.list_latest_tweets_timeline(list_id, count, cursor)
 
-        items = twikit.utils.find_dict(response, 'entries')[0]
+        items_ = find_dict(response, 'entries', find_one=True)
+        if not items_:
+            raise ValueError(f'Invalid list id: {list_id}')
+        items = items_[0]
         next_cursor = items[-1]['content']['value']
 
         results = []
         for item in items:
             entry_id = item['entryId']
             if entry_id.startswith('tweet'):
-                tweet_info = twikit.utils.find_dict(item, 'result')[0]
-                if tweet_info['__typename'] == 'TweetWithVisibilityResults':
-                    tweet_info = tweet_info['tweet']
-                user_info = twikit.utils.find_dict(tweet_info, 'result')[0]
-                results.append(Tweet(self, tweet_info, twikit.user.User(self, user_info)))
+                tweet = tweet_from_data(self, item)
+                if tweet is not None:
+                    results.append(tweet)
             elif entry_id.startswith("list-conversation"):
                 items = twikit.utils.find_dict(item, 'items')
                 # This kinda messes up the order, but we sort it in the Kotlin server anyway
                 for item_idx in range(len(items[0])):
                     item = items[0][item_idx]['item']
-                    tweet_info = twikit.utils.find_dict(item, 'result')[0]
-                    if tweet_info['__typename'] == 'TweetWithVisibilityResults':
-                        tweet_info = tweet_info['tweet']
-                    user_info = twikit.utils.find_dict(tweet_info, 'result')[0]
-                    results.append(Tweet(self, tweet_info, twikit.user.User(self, user_info)))
+                    tweet = tweet_from_data(self, item)
+                    if tweet is not None:
+                        results.append(tweet)
 
         return Result(
             results,
-            lambda: self.get_list_tweets(list_id, count, next_cursor),
+            partial(self.get_list_tweets, list_id, count, next_cursor),
             next_cursor
         )
 
 
-def main(list_id: str, data_path: str) -> None:
+async def main(list_id: str, data_path: str) -> None:
     credentials_path = f"{data_path}/{CREDENTIALS_FILE}"
     with open(credentials_path, "r") as file:
         loaded_data = json.load(file)
@@ -83,16 +71,16 @@ def main(list_id: str, data_path: str) -> None:
 
     try:
         # Check if we can successfully fetch user data with loaded cookies
-        client.user()
-    except twikit.errors.Forbidden:
-        client.login(auth_info_1=username, auth_info_2=email, password=password)
+        await client.user()
+    except twikit.errors.Forbidden or twikit.errors.NotFound:
+        await client.login(auth_info_1=username, auth_info_2=email, password=password)
 
     client.save_cookies(cookies_path)
 
     feed_items = []
 
     # list_id = "1757481771950621108"
-    tweets = client.get_list_tweets(list_id)
+    tweets = await client.get_list_tweets(list_id)
     for _ in range(MAX_PAGES):
         if len(tweets) == 0:
             break
@@ -101,7 +89,7 @@ def main(list_id: str, data_path: str) -> None:
             feed_items.append(tweet_to_feed_item(tweet))
 
         time.sleep(SECONDS_BETWEEN_PAGES)
-        tweets = tweets.next()
+        tweets = await tweets.next()
 
     print(json.dumps(feed_items, default=json_serial))
 
@@ -145,4 +133,9 @@ def json_serial(obj):
 
 
 if __name__ == '__main__':
-    main(list_id=sys.argv[1], data_path=sys.argv[2])
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        asyncio.run(main(list_id=sys.argv[1], data_path=sys.argv[2]))
+    except KeyboardInterrupt:
+        pass
