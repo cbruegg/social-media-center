@@ -4,6 +4,7 @@ import app.bsky.actor.ProfileView
 import app.bsky.embed.RecordViewRecord
 import app.bsky.embed.RecordViewRecordEmbedUnion
 import app.bsky.embed.RecordViewRecordUnion
+import app.bsky.embed.RecordWithMediaViewMediaUnion
 import app.bsky.feed.FeedViewPost
 import app.bsky.feed.FeedViewPostReasonUnion
 import app.bsky.feed.GetTimelineQueryParams
@@ -257,7 +258,34 @@ private fun PostViewEmbedUnion.toMediaAttachments(): List<MediaAttachment> = whe
     }
 
     is PostViewEmbedUnion.RecordView -> emptyList() // Quoted post, not a media attachment
-    is PostViewEmbedUnion.RecordWithMediaView -> emptyList() // Quoted post, not a media attachment
+    is PostViewEmbedUnion.RecordWithMediaView -> when (val media = value.media) {
+        is RecordWithMediaViewMediaUnion.ExternalView -> {
+            if (isGifv() && media.value.external.thumb != null) listOf(
+                MediaAttachment(
+                    type = MediaType.Gifv,
+                    previewImageUrl = media.value.external.thumb!!.uri,
+                    fullUrl = media.value.external.uri.uri
+                )
+            )
+            else emptyList()
+        }
+        is RecordWithMediaViewMediaUnion.ImagesView -> media.value.images.map { image ->
+            MediaAttachment(
+                type = MediaType.Image,
+                previewImageUrl = image.thumb.uri,
+                fullUrl = image.fullsize.uri
+            )
+        }
+        is RecordWithMediaViewMediaUnion.VideoView -> media.value.thumbnail?.let { thumbnail ->
+            listOf(
+                MediaAttachment(
+                    type = MediaType.Video,
+                    previewImageUrl = thumbnail.uri,
+                    fullUrl = thumbnail.uri
+                )
+            )
+        } ?: emptyList()
+    }
     is PostViewEmbedUnion.VideoView ->
         when (val thumbnail = value.thumbnail) {
             is Uri -> listOf(
