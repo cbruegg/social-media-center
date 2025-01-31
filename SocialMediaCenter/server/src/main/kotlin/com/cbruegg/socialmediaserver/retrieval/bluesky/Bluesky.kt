@@ -165,7 +165,7 @@ private fun FeedViewPost.toFeedItem(): FeedItem {
         link = post.bskyAppUri,
         platform = PlatformId.Bluesky,
         quotedPost = embed?.extractQuotedFeedItem(),
-        mediaAttachments = embed?.toMediaAttachments() ?: emptyList(),
+        mediaAttachments = embed?.toMediaAttachments()?.distinctBy { it.previewImageUrl } ?: emptyList(), // BlueSky sometimes sends the same image twice
         repostMeta = reasonRepost?.let {
             RepostMeta(
                 repostingAuthor = "@" + reasonRepost.by.handle.handle,
@@ -219,7 +219,8 @@ private fun PostViewEmbedUnion?.extractQuotedFeedItem(): FeedItem? {
                         link = record.value.bskyAppUri,
                         platform = PlatformId.Bluesky,
                         quotedPost = null,
-                        mediaAttachments = record.value.embeds.flatMap { it.toMediaAttachments() } // TODO Test with https://bsky.app/profile/chenchenzh.bsky.social/post/3lawca5ebk223
+                        mediaAttachments = record.value.embeds.flatMap { it.toMediaAttachments() }
+                            .distinctBy { it.previewImageUrl } // BlueSky sometimes sends the same image twice
                     )
                 }
 
@@ -234,7 +235,12 @@ private val gifvHosts =
     listOf("giphy.com" /* including www., media., media0-4. */, "media.tenor.com")
 
 private fun PostViewEmbedUnion.isGifv(): Boolean = when (this) {
-    is PostViewEmbedUnion.ExternalView -> gifvHosts.any { value.external.uri.uri.toHttpUrl().host.endsWith(it) }
+    is PostViewEmbedUnion.ExternalView -> gifvHosts.any {
+        value.external.uri.uri.toHttpUrl().host.endsWith(
+            it
+        )
+    }
+
     else -> false
 }
 
@@ -269,6 +275,7 @@ private fun PostViewEmbedUnion.toMediaAttachments(): List<MediaAttachment> = whe
             )
             else emptyList()
         }
+
         is RecordWithMediaViewMediaUnion.ImagesView -> media.value.images.map { image ->
             MediaAttachment(
                 type = MediaType.Image,
@@ -276,6 +283,7 @@ private fun PostViewEmbedUnion.toMediaAttachments(): List<MediaAttachment> = whe
                 fullUrl = image.fullsize.uri
             )
         }
+
         is RecordWithMediaViewMediaUnion.VideoView -> media.value.thumbnail?.let { thumbnail ->
             listOf(
                 MediaAttachment(
@@ -286,6 +294,7 @@ private fun PostViewEmbedUnion.toMediaAttachments(): List<MediaAttachment> = whe
             )
         } ?: emptyList()
     }
+
     is PostViewEmbedUnion.VideoView ->
         when (val thumbnail = value.thumbnail) {
             is Uri -> listOf(
