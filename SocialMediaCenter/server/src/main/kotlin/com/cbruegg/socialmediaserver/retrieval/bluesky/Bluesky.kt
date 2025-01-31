@@ -86,6 +86,7 @@ class Bluesky(private val feedsOf: List<BlueskyAccount>) : SocialPlatform {
             return timeline.feed
                 // Filter out replies to users not followed
                 .filterNot { post -> post.inReplyTo.let { it != null && it !in follows } }
+                .filterNot { it.isReplyToInaccessiblePost }
                 .map { it.toFeedItem() }
         } catch (e: Exception) {
             sessionCache -= account
@@ -138,6 +139,9 @@ private fun String.expandFacets(facets: JsonArray?): String {
     }
     return text.decodeToString()
 }
+
+private val FeedViewPost.isReplyToInaccessiblePost: Boolean
+    get() = reply?.parent is ReplyRefParentUnion.NotFoundPost || reply?.parent is ReplyRefParentUnion.BlockedPost
 
 private fun FeedViewPost.toFeedItem(): FeedItem {
     val record = post.record.value.jsonObject
