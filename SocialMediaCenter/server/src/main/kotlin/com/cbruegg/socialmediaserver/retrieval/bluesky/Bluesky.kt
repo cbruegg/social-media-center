@@ -158,7 +158,11 @@ private fun FeedViewPost.toFeedItem(): FeedItem {
                 ?: ""
             )
     if (embed is PostViewEmbedUnion.ExternalView && !embed.isGifv()) {
-        text += "\n\n${embed.value.external.uri.uri}"
+        val uriToExternalContent = embed.value.external.uri.uri
+        if (uriToExternalContent !in text) {
+            // only add the link if the user hasn't already included it in the body of the post
+            text += "\n\n$uriToExternalContent"
+        }
     }
     return FeedItem(
         text = text,
