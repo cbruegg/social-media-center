@@ -6,13 +6,20 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeGestures
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
@@ -78,6 +85,14 @@ fun Feed(
                 }
             )
         }
+        // Don't consume touch events in the system gestures zone:
+        Spacer(
+            Modifier
+                .fillMaxWidth()
+                .windowInsetsBottomHeight(WindowInsets.safeGestures)
+                .align(Alignment.BottomCenter)
+                .draggable(rememberDraggableState { }, orientation = Orientation.Vertical)
+        )
         JumpToTopButton(listState, Modifier.align(Alignment.BottomStart))
         ConfigButton(listState, onConfigButtonClick, Modifier.align(Alignment.BottomStart))
     }
