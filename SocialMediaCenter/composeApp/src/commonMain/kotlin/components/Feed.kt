@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -71,7 +72,7 @@ fun Feed(
 ) {
     Box {
         val listState = rememberForeverFeedItemsListState(feedItems)
-        LazyColumn(state = listState) {
+        LazyColumn(state = listState, modifier = Modifier.fillMaxHeight()) {
             items(
                 feedItems.size,
                 key = { feedItems[it].id },
@@ -94,7 +95,7 @@ fun Feed(
                 .draggable(rememberDraggableState { }, orientation = Orientation.Vertical)
         )
         JumpToTopButton(listState, Modifier.align(Alignment.BottomStart))
-        ConfigButton(listState, onConfigButtonClick, Modifier.align(Alignment.BottomStart))
+        ConfigButton(visible = listState.firstVisibleItemIndex == 0, onConfigButtonClick, Modifier.align(Alignment.BottomStart))
     }
 }
 
@@ -119,14 +120,14 @@ private fun JumpToTopButton(listState: LazyListState, modifier: Modifier = Modif
 }
 
 @Composable
-private fun ConfigButton(
-    listState: LazyListState,
+internal fun ConfigButton(
+    visible: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     AnimatedVisibility(
         modifier = modifier,
-        visible = listState.firstVisibleItemIndex == 0,
+        visible = visible,
         enter = fadeIn(),
         exit = fadeOut()
     ) {

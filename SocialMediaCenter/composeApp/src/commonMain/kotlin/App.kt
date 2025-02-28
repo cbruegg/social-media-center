@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.cbruegg.socialmediaserver.shared.MastodonUser
 import com.cbruegg.socialmediaserver.shared.serverWithoutScheme
 import components.AuthDialog
+import components.ConfigButton
 import components.Feed
 import components.LastLoadFailurePopup
 import components.LifecycleHandler
@@ -111,6 +112,10 @@ fun App() {
                                 dependencies.serverConfig,
                                 onConfigButtonClick = { vm.onConfigButtonClick() }
                             )
+                        } else {
+                            Box(Modifier.fillMaxSize()) {
+                                ConfigButton(visible = true, vm::onConfigButtonClick, Modifier.align(Alignment.BottomStart))
+                            }
                         }
                     }
                     PullRefreshIndicator(
