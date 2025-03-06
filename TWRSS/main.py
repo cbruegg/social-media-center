@@ -10,6 +10,7 @@ from typing import Optional
 import twikit
 from twikit import Client, Tweet
 from dateutil import parser
+from twikit.media import Photo, Video
 from twikit.tweet import tweet_from_data
 from twikit.utils import Result, find_dict
 
@@ -100,17 +101,17 @@ def tweet_to_feed_item(tweet: twikit.Tweet):
     media_attachments = []
     if tweet.media is not None:
         for item in tweet.media:
-            if item['type'] == 'photo':
+            if item is Photo:
                 media_attachments.append({
                     'type': 'Image',
-                    'previewImageUrl': item["media_url_https"],
-                    'fullUrl': item["media_url_https"]
+                    'previewImageUrl': item.media_url,
+                    'fullUrl': item.media_url
                 })
-            elif item['type'] == 'video':
+            elif item is Video:
                 media_attachments.append({
                     'type': 'Video',
-                    'previewImageUrl': item["media_url_https"],
-                    'fullUrl': max(item['video_info']['variants'], key=lambda x: x.get('bitrate', -1))['url']
+                    'previewImageUrl': item.media_url,
+                    'fullUrl': max(item.video_info['variants'], key=lambda x: x.get('bitrate', -1))['url'],
                 })
     return {
         'text': tweet.text,
