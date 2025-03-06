@@ -51,9 +51,14 @@ fun Routing.installRoutes(
 
             try {
                 val upstreamResponse = httpClient.get(urlToProxy) {
-                    headers.appendAll(call.request.headers)
-                    headers.remove("Authorization")
-                    headers.remove("authorization")
+                    call.request.headers["User-Agent"]?.let { headers["User-Agent"] = it }
+                    call.request.headers.forEach { key, values ->
+                        val value = values.singleOrNull() ?: return@forEach
+                        when {
+                            key == "User-Agent" -> headers[key] = value
+                            key.startsWith("Sec-") -> headers[key] = value
+                        }
+                    }
                 }
                 val upstreamResponseChannel = upstreamResponse.bodyAsChannel()
                 call.respondBytesWriter(
