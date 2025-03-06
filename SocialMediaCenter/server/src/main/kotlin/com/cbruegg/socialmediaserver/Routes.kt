@@ -4,17 +4,25 @@ import com.cbruegg.socialmediaserver.retrieval.mastodon.MastodonCredentialsRepos
 import com.cbruegg.socialmediaserver.retrieval.mastodon.getOrCreateSocialMediaCenterApp
 import com.cbruegg.socialmediaserver.retrieval.mastodon.mastodonAppScope
 import com.cbruegg.socialmediaserver.shared.PlatformId
-import io.ktor.client.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
-import io.ktor.server.auth.*
-import io.ktor.server.http.content.*
-import io.ktor.server.response.*
+import io.ktor.client.HttpClient
+import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsChannel
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentLength
+import io.ktor.http.contentType
+import io.ktor.http.decodeURLQueryComponent
+import io.ktor.server.auth.authenticate
+import io.ktor.server.http.content.staticFiles
+import io.ktor.server.response.respond
+import io.ktor.server.response.respondBytesWriter
+import io.ktor.server.response.respondRedirect
 import io.ktor.server.routing.Routing
 import io.ktor.server.routing.get
-import io.ktor.server.sessions.*
-import io.ktor.utils.io.*
+import io.ktor.server.sessions.get
+import io.ktor.server.sessions.sessions
+import io.ktor.server.sessions.set
+import io.ktor.utils.io.copyAndClose
+import kotlinx.io.IOException
 import kotlinx.serialization.Serializable
 import social.bigbone.MastodonClient
 import java.io.File
@@ -41,14 +49,22 @@ fun Routing.installRoutes(
                 return@get
             }
 
-            val upstreamResponse = httpClient.get(urlToProxy)
-            val upstreamResponseChannel = upstreamResponse.bodyAsChannel()
-            call.respondBytesWriter(
-                contentType = upstreamResponse.contentType(),
-                status = upstreamResponse.status,
-                contentLength = upstreamResponse.contentLength()
-            ) {
-                upstreamResponseChannel.copyAndClose(this)
+            try {
+                val upstreamResponse = httpClient.get(urlToProxy) {
+                    headers.appendAll(call.request.headers)
+                    headers.remove("Authorization")
+                    headers.remove("authorization")
+                }
+                val upstreamResponseChannel = upstreamResponse.bodyAsChannel()
+                call.respondBytesWriter(
+                    contentType = upstreamResponse.contentType(),
+                    status = upstreamResponse.status,
+                    contentLength = upstreamResponse.contentLength()
+                ) {
+                    upstreamResponseChannel.copyAndClose(this)
+                }
+            } catch (e: IOException) {
+                throw IOException("Failed to proxy $urlToProxy", e)
             }
         }
         get("/unauthenticated-mastodon-accounts") {
