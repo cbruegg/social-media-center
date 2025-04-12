@@ -1,7 +1,7 @@
 package components
 
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
@@ -20,7 +20,7 @@ import util.LocalContextualUriHandler
 fun FeedItemContentText(feedItem: FeedItem) {
     if (feedItem.text.isEmpty()) return // nothing to display
 
-    val linkColor = MaterialTheme.colors.primary
+    val linkColor = MaterialTheme.colorScheme.primary
     val uriHandler = LocalContextualUriHandler.current
     val linkInteractionListener = LinkInteractionListener { link ->
         println("Clicked $feedItem with $link")

@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,16 +27,16 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Card
-import androidx.compose.material.FloatingActionButton
-import androidx.compose.material.Icon
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material3.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Card
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -133,7 +134,7 @@ internal fun ConfigButton(
     ) {
         FloatingActionButton(
             onClick,
-            backgroundColor = Color.LightGray,
+            containerColor = Color.LightGray,
             modifier = Modifier
                 .padding(16.dp)
                 .size(48.dp)
@@ -242,7 +243,7 @@ fun RepostInfo(
             modifier = Modifier.padding(start = 8.dp)
                 .align(Alignment.CenterVertically)
                 .height(28.dp),
-            color = if (MaterialTheme.colors.isLight) Color.DarkGray else Color.LightGray,
+            color = if (isSystemInDarkTheme()) Color.LightGray else Color.DarkGray,
             fontSize = 14.sp
         )
     }
