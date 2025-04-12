@@ -27,14 +27,13 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Card
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -95,8 +94,15 @@ fun Feed(
                 .align(Alignment.BottomCenter)
                 .draggable(rememberDraggableState { }, orientation = Orientation.Vertical)
         )
-        JumpToTopButton(listState, Modifier.align(Alignment.BottomStart))
-        ConfigButton(visible = listState.firstVisibleItemIndex == 0, onConfigButtonClick, Modifier.align(Alignment.BottomStart))
+
+        val buttonModifier = Modifier.align(Alignment.BottomStart)
+            .padding(bottom = 8.dp)
+        JumpToTopButton(listState, buttonModifier)
+        ConfigButton(
+            visible = listState.firstVisibleItemIndex == 0,
+            onConfigButtonClick,
+            buttonModifier
+        )
     }
 }
 
@@ -134,7 +140,7 @@ internal fun ConfigButton(
     ) {
         FloatingActionButton(
             onClick,
-            containerColor = Color.LightGray,
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
             modifier = Modifier
                 .padding(16.dp)
                 .size(48.dp)
@@ -169,54 +175,52 @@ private fun FeedItemRow(
     val link = feedItem.link
     val repostMeta = feedItem.repostMeta
 
-    Card(modifier = modifier
-        .fillMaxWidth()
-        .let {
-            if (link != null)
-                it.clickable { uriHandler.openPostUri(link, feedItem.platform) }
-            else
-                it
-        }
-    ) {
-        Column(
-            modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 16.dp)
-        ) {
-            if (repostMeta != null) {
-                RepostInfo(
-                    Modifier.padding(start = 64.dp),
-                    repostMeta,
-                    tokenAsHttpHeader,
-                    baseUrl
-                )
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .let {
+                if (link != null)
+                    it.clickable { uriHandler.openPostUri(link, feedItem.platform) }
+                else
+                    it
             }
-            Row {
-                AuthorAvatar(
-                    feedItem.author,
-                    feedItem.authorImageUrl,
-                    tokenAsHttpHeader,
-                    baseUrl,
-                    Modifier.size(64.dp).padding(8.dp)
-                )
-                Column {
-                    AuthorName(feedItem)
-                    FeedItemContentText(feedItem)
-                    FeedItemMediaAttachments(feedItem, tokenAsHttpHeader, baseUrl)
-                    val repost = feedItem.quotedPost
-                    if (repost != null && showRepost) {
-                        FeedItemRow(
-                            repost,
-                            tokenAsHttpHeader,
-                            modifier = Modifier.padding(8.dp),
-                            baseUrl = baseUrl,
-                            showRepost = false // to avoid deep nesting
-                        )
-                    }
-                    Text(
-                        text = formattedDate,
-                        color = Color.Gray,
-                        fontSize = 12.sp
+            .padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 16.dp)
+    ) {
+        if (repostMeta != null) {
+            RepostInfo(
+                Modifier.padding(start = 64.dp),
+                repostMeta,
+                tokenAsHttpHeader,
+                baseUrl
+            )
+        }
+        Row {
+            AuthorAvatar(
+                feedItem.author,
+                feedItem.authorImageUrl,
+                tokenAsHttpHeader,
+                baseUrl,
+                Modifier.size(64.dp).padding(8.dp)
+            )
+            Column {
+                AuthorName(feedItem)
+                FeedItemContentText(feedItem)
+                FeedItemMediaAttachments(feedItem, tokenAsHttpHeader, baseUrl)
+                val repost = feedItem.quotedPost
+                if (repost != null && showRepost) {
+                    FeedItemRow(
+                        repost,
+                        tokenAsHttpHeader,
+                        modifier = Modifier.padding(8.dp),
+                        baseUrl = baseUrl,
+                        showRepost = false // to avoid deep nesting
                     )
                 }
+                Text(
+                    text = formattedDate,
+                    color = Color.Gray,
+                    fontSize = 12.sp
+                )
             }
         }
     }

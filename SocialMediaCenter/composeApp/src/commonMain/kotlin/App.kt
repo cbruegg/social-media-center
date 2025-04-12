@@ -11,12 +11,14 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
@@ -40,6 +42,7 @@ import util.LocalContextualUriHandler
 // TODO: Remember timeline state across devices
 // TODO: (Configurable?) maximum post height (Mastodon posts can be very long)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun App() {
     // Ignore bottom window insets in order to draw below the system bar
@@ -56,9 +59,6 @@ fun App() {
             val state = _state // to enable smart-casts
             val isLoading =
                 state is AppViewModel.State.InitialLoad && state.started || state is AppViewModel.State.Loaded && state.isLoading
-
-            val pullRefreshState =
-                rememberPullRefreshState(isLoading, { scope.launch { vm.requestRefresh() } })
 
             LifecycleHandler(onPause = vm::onPause, onResume = vm::onResume)
 
@@ -79,9 +79,10 @@ fun App() {
             }
 
             Surface {
-                Box(
+                PullToRefreshBox(
+                    isRefreshing = isLoading,
+                    onRefresh = { scope.launch { vm.requestRefresh() } },
                     modifier = Modifier.fillMaxSize()
-                        .pullRefresh(pullRefreshState)
                         .windowInsetsPadding(WindowInsets.safeDrawing.only(windowInsetSides))
                 ) {
                     Column(modifier = Modifier.widthIn(max = 1000.dp).align(Alignment.TopCenter)) {
@@ -113,11 +114,6 @@ fun App() {
                             }
                         }
                     }
-                    PullRefreshIndicator(
-                        refreshing = isLoading,
-                        state = pullRefreshState,
-                        modifier = Modifier.align(Alignment.TopCenter)
-                    )
                 }
             }
         }
@@ -158,3 +154,4 @@ private fun LoadFailureCard(showPopup: () -> Unit, dismissFailure: () -> Unit) {
         }
     }
 }
+
