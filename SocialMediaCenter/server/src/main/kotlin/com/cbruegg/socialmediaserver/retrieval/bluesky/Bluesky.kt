@@ -151,6 +151,7 @@ private fun FeedViewPost.toFeedItem(): FeedItem {
         is ReplyRefParentUnion.BlockedPost -> "@${parentOfReply.value.author.did.did} "
         is ReplyRefParentUnion.NotFoundPost -> "@[Deleted Post] "
         is ReplyRefParentUnion.PostView -> "@${parentOfReply.value.author.handle.handle} "
+        is ReplyRefParentUnion.Unknown -> ""
         null -> ""
     }
     var text = mentionPrefix + (
@@ -301,6 +302,8 @@ private fun PostViewEmbedUnion.toMediaAttachments(): List<MediaAttachment> = whe
                 )
             )
         } ?: emptyList()
+
+        is RecordWithMediaViewMediaUnion.Unknown -> emptyList()
     }
 
     is PostViewEmbedUnion.VideoView ->
@@ -315,6 +318,8 @@ private fun PostViewEmbedUnion.toMediaAttachments(): List<MediaAttachment> = whe
 
             else -> emptyList()
         }
+
+    is PostViewEmbedUnion.Unknown -> emptyList()
 }
 
 private fun RecordViewRecordEmbedUnion.toMediaAttachments(): List<MediaAttachment> = when (this) {
@@ -350,6 +355,8 @@ private fun RecordViewRecordEmbedUnion.toMediaAttachments(): List<MediaAttachmen
 
             else -> emptyList()
         }
+
+    is RecordViewRecordEmbedUnion.Unknown -> emptyList()
 }
 
 private val PostView.bskyAppUri: String
