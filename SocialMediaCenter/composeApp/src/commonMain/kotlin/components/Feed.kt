@@ -32,6 +32,8 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -167,7 +169,7 @@ private fun FeedItemRow(
     tokenAsHttpHeader: Pair<String, String>?,
     modifier: Modifier = Modifier,
     baseUrl: String,
-    showRepost: Boolean = true,
+    showRepost: Boolean = true
 ) {
     val uriHandler = LocalContextualUriHandler.current
 
@@ -184,7 +186,7 @@ private fun FeedItemRow(
                 else
                     it
             }
-            .padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 16.dp)
+            .padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 8.dp)
     ) {
         if (repostMeta != null) {
             RepostInfo(
@@ -208,13 +210,20 @@ private fun FeedItemRow(
                 FeedItemMediaAttachments(feedItem, tokenAsHttpHeader, baseUrl)
                 val repost = feedItem.quotedPost
                 if (repost != null && showRepost) {
-                    FeedItemRow(
-                        repost,
-                        tokenAsHttpHeader,
+                    Card(
                         modifier = Modifier.padding(8.dp),
-                        baseUrl = baseUrl,
-                        showRepost = false // to avoid deep nesting
-                    )
+                        colors = CardDefaults.cardColors().copy(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        )
+                    ) {
+                        FeedItemRow(
+                            repost,
+                            tokenAsHttpHeader,
+                            baseUrl = baseUrl,
+                            showRepost = false // to avoid deep nesting
+                        )
+                    }
                 }
                 Text(
                     text = formattedDate,

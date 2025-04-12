@@ -1,4 +1,4 @@
-import androidx.compose.foundation.isSystemInDarkTheme
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,12 +12,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -36,6 +33,7 @@ import components.LastLoadFailurePopup
 import components.LifecycleHandler
 import io.ktor.http.encodeURLParameter
 import kotlinx.coroutines.launch
+import theme.AppTheme
 import util.ContextualUriHandler
 import util.LocalContextualUriHandler
 
@@ -48,7 +46,7 @@ fun App() {
     // Ignore bottom window insets in order to draw below the system bar
     val windowInsetSides = WindowInsetsSides.Start + WindowInsetsSides.End + WindowInsetsSides.Top
 
-    MaterialTheme(colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()) {
+    AppTheme {
         val dependencies = getAppDependencies()
         CompositionLocalProvider(
             LocalContextualUriHandler provides dependencies.uriHandler
