@@ -1,11 +1,15 @@
-import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.Text
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFontFamilyResolver
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.platform.Font
@@ -13,7 +17,6 @@ import androidx.compose.ui.window.CanvasBasedWindow
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsBytes
-import io.ktor.utils.io.core.use
 import kotlinx.io.IOException
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -41,9 +44,13 @@ fun main() {
         if (fontsLoaded) {
             App()
         } else if (fontLoadFailure) {
-            Text("Failed to load fonts!")
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Text("Failed to load fonts!")
+            }
         } else {
-            CircularProgressIndicator()
+            Box(modifier = Modifier.fillMaxWidth()) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.TopCenter))
+            }
         }
     }
 }
