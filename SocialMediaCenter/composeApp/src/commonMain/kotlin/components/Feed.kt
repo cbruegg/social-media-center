@@ -60,6 +60,8 @@ import com.cbruegg.socialmediaserver.shared.MediaAttachment
 import com.cbruegg.socialmediaserver.shared.MediaType
 import com.cbruegg.socialmediaserver.shared.RepostMeta
 import getPlatform
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import persistence.rememberForeverLazyListState
 import security.ServerConfig
@@ -70,10 +72,14 @@ import util.LocalContextualUriHandler
 fun Feed(
     feedItems: List<FeedItem>,
     serverConfig: ServerConfig,
-    onConfigButtonClick: () -> Unit
+    onConfigButtonClick: () -> Unit,
+    firstVisibleItemFlowChanged: (Flow<FeedItem>) -> Unit = {}
 ) {
     Box {
-        val listState = rememberForeverFeedItemsListState(feedItems)
+        val listState = rememberForeverFeedItemsListState(
+            feedItems,
+            firstVisibleItemFlowChanged = firstVisibleItemFlowChanged
+        )
         LazyColumn(state = listState, modifier = Modifier.fillMaxHeight()) {
             items(
                 feedItems.size,
@@ -153,13 +159,19 @@ internal fun ConfigButton(
 }
 
 @Composable
-private fun rememberForeverFeedItemsListState(feedItems: List<FeedItem>): LazyListState {
+private fun rememberForeverFeedItemsListState(
+    feedItems: List<FeedItem>,
+    firstVisibleItemFlowChanged: (Flow<FeedItem>) -> Unit = {}
+): LazyListState {
     val persistence = getPlatform().persistence
     return rememberForeverLazyListState(
         "appScrollState",
         persistence,
         idOfItemAt = { feedItems.getOrNull(it)?.id ?: "___out-of-bounds___" },
-        indexOfItem = { id -> feedItems.indexOfFirst { it.id == id }.takeIf { it != -1 } }
+        indexOfItem = { id -> feedItems.indexOfFirst { it.id == id }.takeIf { it != -1 } },
+        firstVisibleItemIndexStateFlowChanged = { flow ->
+            firstVisibleItemFlowChanged(flow.map { index -> feedItems[index] })
+        }
     )
 }
 

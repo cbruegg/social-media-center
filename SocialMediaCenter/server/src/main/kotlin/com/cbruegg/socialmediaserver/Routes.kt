@@ -4,6 +4,7 @@ import com.cbruegg.socialmediaserver.retrieval.mastodon.MastodonCredentialsRepos
 import com.cbruegg.socialmediaserver.retrieval.mastodon.getOrCreateSocialMediaCenterApp
 import com.cbruegg.socialmediaserver.retrieval.mastodon.mastodonAppScope
 import com.cbruegg.socialmediaserver.shared.PlatformId
+import com.cbruegg.socialmediaserver.state.StateRepository
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsChannel
@@ -15,9 +16,11 @@ import io.ktor.server.auth.authenticate
 import io.ktor.server.http.content.staticFiles
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondBytesWriter
+import io.ktor.server.response.respondNullable
 import io.ktor.server.response.respondRedirect
 import io.ktor.server.routing.Routing
 import io.ktor.server.routing.get
+import io.ktor.server.routing.put
 import io.ktor.server.sessions.get
 import io.ktor.server.sessions.sessions
 import io.ktor.server.sessions.set
@@ -34,7 +37,8 @@ fun Routing.installRoutes(
     httpClient: HttpClient,
     sources: Sources,
     mastodonCredentialsRepository: MastodonCredentialsRepository,
-    socialMediaCenterWebLocation: File
+    socialMediaCenterWebLocation: File,
+    stateRepository: StateRepository
 ) {
     authenticate {
         get("/json") {
@@ -74,6 +78,20 @@ fun Routing.installRoutes(
         }
         get("/unauthenticated-mastodon-accounts") {
             call.respond(mastodonCredentialsRepository.findMissingCredentials(sources))
+        }
+        put("/first-visible-item-id") {
+            val deviceId = call.parameters["deviceId"]
+            val firstVisibleItemId = call.parameters["firstVisibleItemId"]
+            if (deviceId == null || firstVisibleItemId == null) {
+                call.respond(HttpStatusCode.BadRequest)
+                return@put
+            }
+            stateRepository.updateWith(deviceId, firstVisibleItemId)
+            call.respond(HttpStatusCode.OK)
+        }
+        get("/first-visible-item-id") {
+            val (deviceIdToFirstVisibleItem) = stateRepository.getState()
+            call.respondNullable(deviceIdToFirstVisibleItem)
         }
     }
 

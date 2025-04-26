@@ -104,7 +104,8 @@ fun App() {
                             Feed(
                                 state.feedItems,
                                 dependencies.serverConfig,
-                                onConfigButtonClick = { vm.onConfigButtonClick() }
+                                onConfigButtonClick = vm::onConfigButtonClick,
+                                firstVisibleItemFlowChanged = vm::firstVisibleItemFlowChanged
                             )
                         } else {
                             Box(Modifier.fillMaxSize()) {

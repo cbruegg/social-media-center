@@ -2,7 +2,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cbruegg.socialmediaserver.shared.FeedItem
 import com.cbruegg.socialmediaserver.shared.MastodonUser
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
@@ -10,6 +13,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
@@ -19,8 +24,10 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 import security.ServerConfig
+import util.getDeviceId
 import kotlin.concurrent.Volatile
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 class AppViewModel(
     apiFlow: Flow<Api?>,
@@ -226,5 +233,29 @@ class AppViewModel(
 
     fun onConfigButtonClick() {
         state = State.ShowAuthDialog()
+    }
+
+    private val sendFirstVisibleItemUpdateMutex = Mutex()
+    private var sendFirstVisibleItemJob: Job? = null
+
+    @OptIn(FlowPreview::class)
+    fun firstVisibleItemFlowChanged(firstVisibleItemFlow: Flow<FeedItem>) {
+        viewModelScope.launch {
+            sendFirstVisibleItemUpdateMutex.withLock {
+                sendFirstVisibleItemJob?.cancelAndJoin()
+                sendFirstVisibleItemJob = launch {
+                    firstVisibleItemFlow
+                        .distinctUntilChanged()
+                        .debounce(2.seconds)
+                        .collect { firstVisibleItem ->
+                            val api = apiFlow.value ?: return@collect
+                            api.sendFirstVisibleItemId(
+                                deviceId = getDeviceId(),
+                                firstVisibleItemId = firstVisibleItem.id
+                            )
+                        }
+                }
+            }
+        }
     }
 }

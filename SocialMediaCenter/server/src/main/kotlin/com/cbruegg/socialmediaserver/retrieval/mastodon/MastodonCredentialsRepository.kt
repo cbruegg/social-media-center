@@ -4,7 +4,6 @@ import com.cbruegg.socialmediaserver.Sources
 import com.cbruegg.socialmediaserver.shared.MastodonUser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean

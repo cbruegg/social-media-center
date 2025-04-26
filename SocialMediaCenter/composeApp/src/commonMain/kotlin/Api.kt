@@ -1,8 +1,11 @@
+
+import com.cbruegg.socialmediaserver.shared.DeviceIdToFirstVisibleItem
 import com.cbruegg.socialmediaserver.shared.FeedItem
 import com.cbruegg.socialmediaserver.shared.MastodonUser
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
+import io.ktor.client.request.put
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
@@ -16,6 +19,14 @@ class Api(private val baseUrl: String, private val httpClient: HttpClient) {
 
     suspend fun getUnauthenticatedMastodonAccounts(): ApiResponse<List<MastodonUser>> = request {
         httpClient.get("$baseUrl/unauthenticated-mastodon-accounts")
+    }
+
+    suspend fun sendFirstVisibleItemId(deviceId: String, firstVisibleItemId: String): ApiResponse<Unit> = request {
+        httpClient.put("$baseUrl/first-visible-item-id?deviceId=$deviceId&firstVisibleItemId=$firstVisibleItemId")
+    }
+
+    suspend fun getFirstVisibleItemId(): ApiResponse<DeviceIdToFirstVisibleItem?> = request {
+        httpClient.get("$baseUrl/first-visible-item-id")
     }
 
     private suspend inline fun <reified T> request(block: () -> HttpResponse): ApiResponse<T> {

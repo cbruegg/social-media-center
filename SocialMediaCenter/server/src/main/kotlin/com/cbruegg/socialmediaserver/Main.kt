@@ -5,6 +5,7 @@ import com.cbruegg.socialmediaserver.retrieval.bluesky.Bluesky
 import com.cbruegg.socialmediaserver.retrieval.mastodon.Mastodon
 import com.cbruegg.socialmediaserver.retrieval.mastodon.MastodonCredentialsRepository
 import com.cbruegg.socialmediaserver.retrieval.security.Auth
+import com.cbruegg.socialmediaserver.state.StateRepository
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.http.HttpHeaders
@@ -42,6 +43,8 @@ suspend fun main(args: Array<String>): Unit = coroutineScope {
     val mastodonCredentialsRepository = MastodonCredentialsRepository(File(dataLocation, "credentials_mastodon.json"))
     val sources = loadSources(dataLocation)
 
+    val stateRepository = StateRepository(File(dataLocation, "state.json"))
+
     val feedMonitor = createFeedMonitor(twitterScriptLocation, dataLocation, sources, mastodonCredentialsRepository)
     feedMonitor.start(scope = this)
 
@@ -78,7 +81,14 @@ suspend fun main(args: Array<String>): Unit = coroutineScope {
         }
 
         routing {
-            installRoutes(feedMonitor, httpClient, sources, mastodonCredentialsRepository, File(socialMediaCenterWebLocation))
+            installRoutes(
+                feedMonitor = feedMonitor,
+                httpClient = httpClient,
+                sources = sources,
+                mastodonCredentialsRepository = mastodonCredentialsRepository,
+                socialMediaCenterWebLocation = File(socialMediaCenterWebLocation),
+                stateRepository = stateRepository
+            )
         }
     }.start(wait = true)
 }
