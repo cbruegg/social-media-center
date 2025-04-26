@@ -180,7 +180,8 @@ class AppViewModel(
                             feedItems = feedResult.body,
                             lastLoadFailure = null,
                             isLoading = false,
-                            unauthenticatedMastodonAccounts = unauthenticatedMastodonAccounts
+                            unauthenticatedMastodonAccounts = unauthenticatedMastodonAccounts,
+                            suggestedFeedPosition = topMostVisibleItemOnOtherDevices
                         )
 
                         is State.ShowAuthDialog -> return@coroutineScope // abort refresh
