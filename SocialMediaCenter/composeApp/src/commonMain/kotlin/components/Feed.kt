@@ -37,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,6 +60,7 @@ import com.cbruegg.socialmediaserver.shared.RepostMeta
 import getPlatform
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import persistence.rememberForeverLazyListState
 import security.ServerConfig
@@ -77,6 +79,7 @@ fun Feed(
     acceptSuggestedFeedPosition: (previousFeedPosition: Int) -> Unit,
     revertedSyncFeedPosition: () -> Unit
 ) {
+    val scope = rememberCoroutineScope()
     Box {
         val listState = rememberForeverFeedItemsListState(
             feedItems,
@@ -125,7 +128,7 @@ fun Feed(
                 suggestedFeedPosition ?: return@SyncFeedPositionButton
 
                 acceptSuggestedFeedPosition(listState.firstVisibleItemIndex)
-                listState.requestScrollToItem(suggestedFeedPosition)
+                scope.launch { listState.animateScrollToItem(suggestedFeedPosition) }
             },
             modifier = bottomEndButtonModifier
         )
@@ -134,8 +137,8 @@ fun Feed(
             onClick = {
                 revertSyncFeedPositionOption ?: return@RevertSyncFeedPositionButton
 
-                listState.requestScrollToItem(index = revertSyncFeedPositionOption.previousFeedPosition)
                 revertedSyncFeedPosition()
+                scope.launch { listState.animateScrollToItem(index = revertSyncFeedPositionOption.previousFeedPosition) }
             },
             modifier = bottomEndButtonModifier
         )
