@@ -1,8 +1,6 @@
 package components
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import AppViewModel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,19 +26,17 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Repeat
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,6 +45,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.PlatformContext
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
@@ -62,18 +59,23 @@ import com.cbruegg.socialmediaserver.shared.RepostMeta
 import getPlatform
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 import persistence.rememberForeverLazyListState
 import security.ServerConfig
 import security.tokenAsHttpHeader
 import util.LocalContextualUriHandler
+import util.currentTimeFlow
 
 @Composable
 fun Feed(
     feedItems: List<FeedItem>,
     serverConfig: ServerConfig,
     onConfigButtonClick: () -> Unit,
-    firstVisibleItemFlowChanged: (Flow<FeedItem>) -> Unit = {}
+    firstVisibleItemFlowChanged: (Flow<FeedItem>) -> Unit = {},
+    suggestedFeedPosition: Int?,
+    revertSyncFeedPositionOption: AppViewModel.RevertSyncFeedPositionOption?,
+    acceptSuggestedFeedPosition: (previousFeedPosition: Int) -> Unit,
+    revertedSyncFeedPosition: () -> Unit
 ) {
     Box {
         val listState = rememberForeverFeedItemsListState(
@@ -94,6 +96,7 @@ fun Feed(
                 }
             )
         }
+
         // Don't consume touch events in the system gestures zone:
         Spacer(
             Modifier
@@ -103,58 +106,39 @@ fun Feed(
                 .draggable(rememberDraggableState { }, orientation = Orientation.Vertical)
         )
 
-        val buttonModifier = Modifier.align(Alignment.BottomStart)
-            .padding(bottom = 8.dp)
-        JumpToTopButton(listState, buttonModifier)
+        val bottomStartButtonModifier = Modifier.align(Alignment.BottomStart).padding(bottom = 8.dp)
+        JumpToTopButton(listState, bottomStartButtonModifier)
         ConfigButton(
             visible = listState.firstVisibleItemIndex == 0,
             onConfigButtonClick,
-            buttonModifier
+            bottomStartButtonModifier
         )
-    }
-}
 
-@Composable
-private fun JumpToTopButton(listState: LazyListState, modifier: Modifier = Modifier) {
-    val scope = rememberCoroutineScope()
-    AnimatedVisibility(
-        modifier = modifier,
-        visible = listState.firstVisibleItemIndex != 0,
-        enter = fadeIn(),
-        exit = fadeOut()
-    ) {
-        FloatingActionButton(
-            onClick = { scope.launch { listState.animateScrollToItem(0) } },
-            modifier = Modifier
-                .padding(16.dp)
-                .size(48.dp)
-        ) {
-            Icon(Icons.Filled.KeyboardArrowUp, "Jump up")
+        val bottomEndButtonModifier = Modifier.align(Alignment.BottomEnd).padding(bottom = 8.dp)
+        val currentTime by currentTimeFlow.collectAsStateWithLifecycle(initialValue = Clock.System.now())
+        val showSyncFeedPositionButton by remember(suggestedFeedPosition) {
+            derivedStateOf { suggestedFeedPosition != null && suggestedFeedPosition < listState.firstVisibleItemIndex }
         }
-    }
-}
+        SyncFeedPositionButton(
+            visible = showSyncFeedPositionButton,
+            onClick = {
+                suggestedFeedPosition ?: return@SyncFeedPositionButton
 
-@Composable
-internal fun ConfigButton(
-    visible: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    AnimatedVisibility(
-        modifier = modifier,
-        visible = visible,
-        enter = fadeIn(),
-        exit = fadeOut()
-    ) {
-        FloatingActionButton(
-            onClick,
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-            modifier = Modifier
-                .padding(16.dp)
-                .size(48.dp)
-        ) {
-            Icon(Icons.Filled.Settings, "Settings")
-        }
+                acceptSuggestedFeedPosition(listState.firstVisibleItemIndex)
+                listState.requestScrollToItem(suggestedFeedPosition)
+            },
+            modifier = bottomEndButtonModifier
+        )
+        RevertSyncFeedPositionButton(
+            visible = revertSyncFeedPositionOption != null && currentTime <= revertSyncFeedPositionOption.showUntil,
+            onClick = {
+                revertSyncFeedPositionOption ?: return@RevertSyncFeedPositionButton
+
+                listState.requestScrollToItem(index = revertSyncFeedPositionOption.previousFeedPosition)
+                revertedSyncFeedPosition()
+            },
+            modifier = bottomEndButtonModifier
+        )
     }
 }
 

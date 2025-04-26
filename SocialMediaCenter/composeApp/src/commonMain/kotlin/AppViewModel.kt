@@ -22,6 +22,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 import security.ServerConfig
 import util.getDeviceId
@@ -33,6 +35,12 @@ class AppViewModel(
     apiFlow: Flow<Api?>,
     private val serverConfig: ServerConfig
 ) : ViewModel() {
+    @Serializable
+    data class RevertSyncFeedPositionOption(
+        val previousFeedPosition: Int,
+        val showUntil: Instant
+    )
+
     @Serializable
     sealed interface State {
         companion object {
@@ -48,7 +56,9 @@ class AppViewModel(
             val lastLoadFailure: Throwable?,
             val showLastLoadFailurePopup: Boolean = false,
             val isLoading: Boolean = false,
-            val unauthenticatedMastodonAccounts: List<MastodonUser> = emptyList()
+            val unauthenticatedMastodonAccounts: List<MastodonUser> = emptyList(),
+            val suggestedFeedPosition: Int? = null,
+            val revertSyncFeedPositionOption: RevertSyncFeedPositionOption? = null
         ) : State
     }
 
@@ -130,7 +140,18 @@ class AppViewModel(
         val feedResultAsync = async { api.getFeed() }
         val unauthenticatedMastodonAccountsResultAsync =
             async { api.getUnauthenticatedMastodonAccounts() }
+        val deviceIdToFirstVisibleItemResultAsync = async { api.getFirstVisibleItemId() }
+
         val feedResult = feedResultAsync.await()
+
+        val deviceIdIdToFirstVisibleItemResult = deviceIdToFirstVisibleItemResultAsync.await()
+        val deviceIdIdToFirstVisibleItem = when (deviceIdIdToFirstVisibleItemResult) {
+            is ApiResponse.Ok -> deviceIdIdToFirstVisibleItemResult.body
+            is ApiResponse.ErrorStatus -> null
+            is ApiResponse.CaughtException -> null
+            is ApiResponse.Unauthorized -> null
+        }
+
         val unauthenticatedMastodonAccountsResult =
             unauthenticatedMastodonAccountsResultAsync.await()
         val unauthenticatedMastodonAccounts = when (unauthenticatedMastodonAccountsResult) {
@@ -140,21 +161,30 @@ class AppViewModel(
 
         mutex.withLock {
             when (feedResult) {
-                is ApiResponse.Ok -> state = when (val state = state) {
-                    is State.InitialLoad -> State.Loaded(
-                        feedItems = feedResult.body,
-                        lastLoadFailure = null,
-                        unauthenticatedMastodonAccounts = unauthenticatedMastodonAccounts
-                    )
+                is ApiResponse.Ok -> {
+                    val topMostVisibleItemOnOtherDevices = deviceIdIdToFirstVisibleItem
+                        ?.filter { (deviceId) -> deviceId != getDeviceId() } // ignore our own device
+                        ?.map { (_, firstVisibleItemId) -> feedResult.body.indexOfFirst { it.id == firstVisibleItemId } }
+                        ?.filter { it != -1 } // ignore not found
+                        ?.minOrNull()
 
-                    is State.Loaded -> state.copy(
-                        feedItems = feedResult.body,
-                        lastLoadFailure = null,
-                        isLoading = false,
-                        unauthenticatedMastodonAccounts = unauthenticatedMastodonAccounts
-                    )
+                    state = when (val state = state) {
+                        is State.InitialLoad -> State.Loaded(
+                            feedItems = feedResult.body,
+                            lastLoadFailure = null,
+                            unauthenticatedMastodonAccounts = unauthenticatedMastodonAccounts,
+                            suggestedFeedPosition = topMostVisibleItemOnOtherDevices
+                        )
 
-                    is State.ShowAuthDialog -> return@coroutineScope // abort refresh
+                        is State.Loaded -> state.copy(
+                            feedItems = feedResult.body,
+                            lastLoadFailure = null,
+                            isLoading = false,
+                            unauthenticatedMastodonAccounts = unauthenticatedMastodonAccounts
+                        )
+
+                        is State.ShowAuthDialog -> return@coroutineScope // abort refresh
+                    }
                 }
 
                 is ApiResponse.Unauthorized -> state = State.ShowAuthDialog()
@@ -256,6 +286,29 @@ class AppViewModel(
                         }
                 }
             }
+        }
+    }
+
+    fun acceptSuggestedFeedPosition(previousFeedPosition: Int) {
+        state = when (val state = state) {
+            is State.Loaded -> state.copy(
+                revertSyncFeedPositionOption = RevertSyncFeedPositionOption(
+                    previousFeedPosition = previousFeedPosition,
+                    showUntil = Clock.System.now() + 10.seconds
+                )
+            )
+
+            else -> state
+        }
+    }
+
+    fun revertedSyncFeedPosition() {
+        state = when (val state = state) {
+            is State.Loaded -> state.copy(
+                revertSyncFeedPositionOption = null
+            )
+
+            else -> state
         }
     }
 }

@@ -105,7 +105,11 @@ fun App() {
                                 state.feedItems,
                                 dependencies.serverConfig,
                                 onConfigButtonClick = vm::onConfigButtonClick,
-                                firstVisibleItemFlowChanged = vm::firstVisibleItemFlowChanged
+                                firstVisibleItemFlowChanged = vm::firstVisibleItemFlowChanged,
+                                suggestedFeedPosition = state.suggestedFeedPosition,
+                                acceptSuggestedFeedPosition = vm::acceptSuggestedFeedPosition,
+                                revertSyncFeedPositionOption = state.revertSyncFeedPositionOption,
+                                revertedSyncFeedPosition = vm::revertedSyncFeedPosition
                             )
                         } else {
                             Box(Modifier.fillMaxSize()) {
