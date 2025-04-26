@@ -60,6 +60,7 @@ suspend fun main(args: Array<String>): Unit = coroutineScope {
         install(CORS) {
             anyHost() // this is fine as the API requires an auth token for sensitive operations
             allowMethod(HttpMethod.Options)
+            allowMethod(HttpMethod.Put)
             allowHeader(HttpHeaders.Authorization)
             allowHeader(HttpHeaders.Origin)
         }
