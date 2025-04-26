@@ -58,9 +58,10 @@ suspend fun main(args: Array<String>): Unit = coroutineScope {
             json()
         }
         install(CORS) {
-            anyHost()
+            anyHost() // this is fine as the API requires an auth token for sensitive operations
             allowMethod(HttpMethod.Options)
             allowHeader(HttpHeaders.Authorization)
+            allowHeader(HttpHeaders.Origin)
         }
         install(Sessions) {
             cookie<MastodonAuthSession>("mastodon_auth_session")
