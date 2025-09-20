@@ -17,7 +17,9 @@ import androidx.compose.ui.window.CanvasBasedWindow
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsBytes
-import kotlinx.io.IOException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
@@ -27,17 +29,34 @@ fun main() {
         var fontLoadFailure by remember { mutableStateOf(false) }
 
         LaunchedEffect(Unit) {
-            val notoEmojisBytes = try {
-                loadEmojisFontAsBytes()
-            } catch (e: IOException) {
-                fontLoadFailure = true
-                return@LaunchedEffect
+            val jobs = mutableListOf<Job>()
+            jobs += launch {
+                val notoEmojisBytes = loadEmojisFontAsBytes()
+                println("Loaded emojis font")
+                val fontFamily = FontFamily(Font("NotoColorEmoji", notoEmojisBytes))
+                fontFamilyResolver.preload(fontFamily)
+                println("Preloaded emojis font")
             }
-            println("Loaded emojis font")
-            val fontFamily = FontFamily(Font("NotoColorEmoji", notoEmojisBytes))
-            fontFamilyResolver.preload(fontFamily)
-            println("Preloaded emojis font")
-            fontsLoaded = true
+            jobs += launch {
+                val scFontAsBytes = loadSimpleChineseFontAsBytes()
+                println("Loaded SC font")
+                val scFontFamily = FontFamily(Font("NotoSansSC", scFontAsBytes))
+                fontFamilyResolver.preload(scFontFamily)
+                println("Preloaded SC font")
+            }
+            jobs += launch {
+                val tcFontAsBytes = loadTraditionalChineseFontAsBytes()
+                println("Loaded TC font")
+                val tcFontFamily = FontFamily(Font("NotoSansTC", tcFontAsBytes))
+                fontFamilyResolver.preload(tcFontFamily)
+                println("Preloaded TC font")
+            }
+            try {
+                jobs.joinAll()
+                fontsLoaded = true
+            } catch (_: Exception) {
+                fontLoadFailure = true
+            }
         }
 
         println("fontsLoaded=$fontsLoaded, fontLoadFailure=$fontLoadFailure")
@@ -56,6 +75,16 @@ fun main() {
 }
 
 private suspend fun loadEmojisFontAsBytes(): ByteArray = HttpClient().use { client ->
-    client.get("https://rawcdn.githack.com/googlefonts/noto-emoji/refs/tags/v2.047/fonts/NotoColorEmoji.ttf")
+    client.get("https://rawcdn.githack.com/googlefonts/noto-emoji/refs/tags/v2.051/fonts/NotoColorEmoji.ttf")
+        .bodyAsBytes()
+}
+
+private suspend fun loadSimpleChineseFontAsBytes(): ByteArray = HttpClient().use { client ->
+    client.get("https://cdn.jsdelivr.net/npm/@electron-fonts/noto-sans-sc@1.2.0/fonts/NotoSansSC-Regular.ttf")
+        .bodyAsBytes()
+}
+
+private suspend fun loadTraditionalChineseFontAsBytes(): ByteArray = HttpClient().use { client ->
+    client.get("https://cdn.jsdelivr.net/npm/@electron-fonts/noto-sans-tc@1.2.0/fonts/NotoSansTC-Regular.ttf")
         .bodyAsBytes()
 }
