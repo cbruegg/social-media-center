@@ -4,7 +4,6 @@ import androidx.compose.ui.text.AnnotatedString
 import com.cbruegg.socialmediaserver.shared.PlatformId
 import io.ktor.http.Url
 import io.ktor.http.encodeURLPath
-import kotlinx.datetime.Instant
 import kotlinx.datetime.toNSDate
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
@@ -17,7 +16,10 @@ import platform.UIKit.UIApplication
 import util.ContextualUriHandler
 import util.InAppBrowserOpener
 import util.isNumeric
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
+@OptIn(ExperimentalTime::class)
 object IOSPlatform : Platform {
     private val formatter = NSDateFormatter().apply {
         dateStyle = NSDateFormatterMediumStyle

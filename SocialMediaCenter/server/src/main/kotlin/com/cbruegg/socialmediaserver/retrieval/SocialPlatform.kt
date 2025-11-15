@@ -3,11 +3,14 @@ package com.cbruegg.socialmediaserver.retrieval
 import com.cbruegg.socialmediaserver.shared.FeedItem
 import com.cbruegg.socialmediaserver.shared.PlatformId
 import io.ktor.http.encodeURLQueryComponent
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 val oldestAcceptedFeedItemInstant get() = Clock.System.now() - 2.days
 
+@OptIn(ExperimentalTime::class)
 fun FeedItem.withProxiedUrl(): FeedItem = copy(
     authorImageUrl = authorImageUrl?.proxiedUrl(),
     quotedPost = quotedPost?.withProxiedUrl(),

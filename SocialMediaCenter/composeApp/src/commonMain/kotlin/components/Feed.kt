@@ -61,13 +61,15 @@ import getPlatform
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 import persistence.rememberForeverLazyListState
 import security.ServerConfig
 import security.tokenAsHttpHeader
 import util.LocalContextualUriHandler
 import util.currentTimeFlow
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 @Composable
 fun Feed(
     feedItems: List<FeedItem>,
@@ -162,6 +164,7 @@ private fun rememberForeverFeedItemsListState(
     )
 }
 
+@OptIn(ExperimentalTime::class)
 @Composable
 private fun FeedItemRow(
     feedItem: FeedItem,

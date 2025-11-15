@@ -19,7 +19,9 @@ import kotlin.random.Random
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 class FeedMonitor(
     private val platforms: List<SocialPlatform>,
     private val minFetchInterval: Duration = 1.minutes,

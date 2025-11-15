@@ -24,7 +24,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.plugins.DefaultRequest
 import io.ktor.http.takeFrom
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.contentOrNull
@@ -38,6 +38,7 @@ import sh.christian.ozone.api.AtIdentifier
 import sh.christian.ozone.api.Did
 import sh.christian.ozone.api.Uri
 import java.util.Collections
+import kotlin.time.ExperimentalTime
 
 // TODO Stop emulating links by expanding them. Add native supports for spans/facets. Or use HTML for Bluesky posts.
 
@@ -143,6 +144,7 @@ private fun String.expandFacets(facets: JsonArray?): String {
 private val FeedViewPost.isReplyToInaccessiblePost: Boolean
     get() = reply?.parent is ReplyRefParentUnion.NotFoundPost || reply?.parent is ReplyRefParentUnion.BlockedPost
 
+@OptIn(ExperimentalTime::class)
 private fun FeedViewPost.toFeedItem(): FeedItem {
     val record = post.record.value.jsonObject
     val embed = post.embed
@@ -174,7 +176,8 @@ private fun FeedViewPost.toFeedItem(): FeedItem {
         link = post.bskyAppUri,
         platform = PlatformId.Bluesky,
         quotedPost = embed?.extractQuotedFeedItem(),
-        mediaAttachments = embed?.toMediaAttachments()?.distinctBy { it.previewImageUrl } ?: emptyList(), // BlueSky sometimes sends the same image twice
+        mediaAttachments = embed?.toMediaAttachments()?.distinctBy { it.previewImageUrl }
+            ?: emptyList(), // BlueSky sometimes sends the same image twice
         repostMeta = reasonRepost?.let {
             RepostMeta(
                 repostingAuthor = "@" + reasonRepost.by.handle.handle,
@@ -185,6 +188,7 @@ private fun FeedViewPost.toFeedItem(): FeedItem {
     )
 }
 
+@OptIn(ExperimentalTime::class)
 private fun PostViewEmbedUnion?.extractQuotedFeedItem(): FeedItem? {
     return when (this) {
         is PostViewEmbedUnion.RecordView ->
@@ -245,9 +249,7 @@ private val gifvHosts =
 
 private fun PostViewEmbedUnion.isGifv(): Boolean = when (this) {
     is PostViewEmbedUnion.ExternalView -> gifvHosts.any {
-        value.external.uri.uri.toHttpUrl().host.endsWith(
-            it
-        )
+        value.external.uri.uri.toHttpUrl().host.endsWith(it)
     }
 
     else -> false

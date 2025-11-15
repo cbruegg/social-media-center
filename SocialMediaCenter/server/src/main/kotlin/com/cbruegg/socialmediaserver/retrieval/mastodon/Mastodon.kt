@@ -8,11 +8,12 @@ import com.cbruegg.socialmediaserver.shared.MediaType
 import com.cbruegg.socialmediaserver.shared.PlatformId
 import com.cbruegg.socialmediaserver.shared.RepostMeta
 import com.cbruegg.socialmediaserver.shared.serverWithoutScheme
-import kotlinx.datetime.toKotlinInstant
 import social.bigbone.MastodonClient
 import social.bigbone.api.Range
 import social.bigbone.api.entity.Status
 import java.time.Instant
+import kotlin.time.ExperimentalTime
+import kotlin.time.toKotlinInstant
 import social.bigbone.api.entity.MediaAttachment as MastodonMediaAttachment
 
 
@@ -50,6 +51,7 @@ class Mastodon(
 
 }
 
+@OptIn(ExperimentalTime::class)
 private fun Status.toFeedItem(userServerBaseUrl: String): FeedItem {
     val id = id.takeIf { it.isNotEmpty() }
     val account = account

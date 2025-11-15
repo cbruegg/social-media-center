@@ -1,7 +1,6 @@
 
 import android.content.Context
 import com.cbruegg.socialmediacenter.frontend.app
-import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toJavaLocalDateTime
 import kotlinx.datetime.toLocalDateTime
@@ -10,7 +9,11 @@ import kotlinx.serialization.json.Json
 import persistence.Persistence
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
+import androidx.core.content.edit
 
+@OptIn(ExperimentalTime::class)
 object AndroidPlatform : Platform {
     private val dateTimeFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
     override val persistence: Persistence = AndroidPersistence(app)
@@ -27,7 +30,7 @@ private class AndroidPersistence(context: Context): Persistence {
 
     override fun <T : Any> save(key: String, value: T, serializer: KSerializer<T>) {
         val serialized = Json.encodeToString(serializer, value)
-        prefs.edit().putString(key, serialized).apply()
+        prefs.edit { putString(key, serialized) }
     }
 
     override fun <T : Any> load(key: String, serializer: KSerializer<T>): T? {

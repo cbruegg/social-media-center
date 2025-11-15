@@ -1,8 +1,10 @@
 package com.cbruegg.socialmediaserver.shared
 
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.serialization.Serializable
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 @Serializable
 data class FeedItem(
     val text: String,
@@ -17,6 +19,7 @@ data class FeedItem(
     val repostMeta: RepostMeta? = null
 )
 
+@OptIn(ExperimentalTime::class)
 @Serializable
 data class RepostMeta(
     val repostingAuthor: String,

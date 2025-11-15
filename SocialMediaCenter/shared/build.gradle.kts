@@ -12,15 +12,12 @@ plugins {
 kotlin {
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
-        moduleName = "shared"
+        outputModuleName = "shared"
         browser {
             commonWebpackConfig {
                 outputFileName = "shared.js"
                 devServer = (devServer ?: KotlinWebpackConfig.DevServer()).apply {
-                    static = (static ?: mutableListOf()).apply {
-                        // Serve sources to debug inside browser
-                        add(project.projectDir.path)
-                    }
+                    static(project.projectDir.path)
                 }
             }
         }

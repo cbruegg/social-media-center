@@ -1,10 +1,12 @@
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.UriHandler
-import kotlinx.datetime.Instant
 import persistence.Persistence
 import util.ContextualUriHandler
 import util.InAppBrowserOpener
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
+@OptIn(ExperimentalTime::class)
 interface Platform {
     fun createUriHandler(
         clipboardManager: ClipboardManager,
