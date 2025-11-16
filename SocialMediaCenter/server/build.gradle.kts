@@ -12,6 +12,7 @@ dependencies {
 
     implementation(libs.bigbone)
     implementation(libs.ozone)
+    implementation(libs.jsoup)
 
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.serialization.json)

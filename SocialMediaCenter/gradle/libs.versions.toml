@@ -20,7 +20,9 @@ logbackClassic = "1.5.21"
 ozone = "0.3.3"
 
 [libraries]
-bigbone = { module = "social.bigbone:bigbone", version.ref = "bigbone" }
+# Use from Jitpack until support for quoted posts is released: https://github.com/PattaFeuFeu/bigbone/commit/bdcd6159e31c665679cb457d416790092e5addfb
+bigbone = { module = "com.github.PattaFeuFeu:bigbone", version = "ce2fd5e012" }
+#bigbone = { module = "social.bigbone:bigbone", version.ref = "bigbone" }
 ozone = { module = "sh.christian.ozone:bluesky", version.ref = "ozone" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -35,6 +37,7 @@ kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.
 coil = { module = "io.coil-kt.coil3:coil", version.ref = "coil" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-network = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
+jsoup = { module = "org.jsoup:jsoup", version = "1.21.2" }
 ksoup-html = { module = "com.mohamedrejeb.ksoup:ksoup-html", version.ref = "ksoup" }
 ksoup-entities = { module = "com.mohamedrejeb.ksoup:ksoup-entities", version.ref = "ksoup" }
 lifecycle-viewmodel = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel", version.ref = "lifecycle" }
