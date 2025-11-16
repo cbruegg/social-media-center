@@ -24,6 +24,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.plugins.DefaultRequest
 import io.ktor.http.takeFrom
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.datetime.toStdlibInstant
 import kotlin.time.Instant
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
@@ -182,7 +183,7 @@ private fun FeedViewPost.toFeedItem(): FeedItem {
             RepostMeta(
                 repostingAuthor = "@" + reasonRepost.by.handle.handle,
                 repostingAuthorImageUrl = reasonRepost.by.avatar?.uri,
-                timeOfRepost = reasonRepost.indexedAt
+                timeOfRepost = reasonRepost.indexedAt.toStdlibInstant()
             )
         }
     )
