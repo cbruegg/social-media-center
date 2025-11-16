@@ -21,7 +21,7 @@ ozone = "0.3.3"
 
 [libraries]
 # Use from Jitpack until support for quoted posts is released: https://github.com/PattaFeuFeu/bigbone/commit/bdcd6159e31c665679cb457d416790092e5addfb
-bigbone = { module = "com.github.PattaFeuFeu:bigbone", version = "ce2fd5e012" }
+bigbone = { module = "com.github.PattaFeuFeu.bigbone:bigbone", version = "ce2fd5e012" }
 #bigbone = { module = "social.bigbone:bigbone", version.ref = "bigbone" }
 ozone = { module = "sh.christian.ozone:bluesky", version.ref = "ozone" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
