@@ -13,7 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFontFamilyResolver
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.platform.Font
-import androidx.compose.ui.window.CanvasBasedWindow
+import androidx.compose.ui.window.ComposeViewport
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsBytes
@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
-    CanvasBasedWindow(canvasElementId = "ComposeTarget") {
+    ComposeViewport {
         val fontFamilyResolver = LocalFontFamilyResolver.current
         var fontsLoaded by remember { mutableStateOf(false) }
         var fontLoadFailure by remember { mutableStateOf(false) }
