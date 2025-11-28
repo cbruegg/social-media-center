@@ -35,7 +35,8 @@ fun rememberForeverLazyListState(
             initialFirstVisibleItemScrollOffset
         )
     }
-    LaunchedEffect(scrollState) {
+    LaunchedEffect(firstVisibleItemIndexStateFlowChanged, scrollState) {
+        println("rememberForeverLazyListState: calling firstVisibleItemIndexStateFlowChanged")
         firstVisibleItemIndexStateFlowChanged(snapshotFlow { scrollState.firstVisibleItemIndex })
     }
     LaunchedEffect(idOfItemAt) {
