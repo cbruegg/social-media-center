@@ -21,7 +21,7 @@ WORKDIR /build/SocialMediaCenter
 RUN ./gradlew -PexcludeComposeApp=true :server:assemble
 RUN unzip /build/SocialMediaCenter/server/build/distributions/server-1.0-SNAPSHOT.zip
 
-FROM --platform=x86_64 ubuntu:24.04 AS buildWebApp
+FROM --platform=linux/amd64 ubuntu:24.04 AS buildWebApp
 ARG GITHUB_ACTOR
 ARG GITHUB_TOKEN
 ENV GITHUB_ACTOR $GITHUB_ACTOR
@@ -30,7 +30,9 @@ ENV GITHUB_TOKEN $GITHUB_TOKEN
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    openjdk-21-jdk-headless; \
+    openjdk-21-jdk-headless \
+    libatomic1 \
+    libstdc++6; \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
